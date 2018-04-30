@@ -182,20 +182,20 @@ def rk4 (f, x0, y0, h, n):
 
 
 def solve (f, fdy, x0, y0, h, n, m):
-    if m == Method.BEn:
+    if m is Method.BEn:
         return bEuler_newton(f, fdy, x0, y0, h, n)
-    elif m == Method.BEf:
+    elif m is Method.BEf:
         return bEuler_fxpt(f, x0, y0, h, n)
-    elif m == Method.TR:
+    elif m is Method.TR:
         return trapez(f, fdy, x0, y0, h, n)
-    elif m == Method.BDF4:
+    elif m is Method.BDF4:
         return bdf(f, fdy, x0, y0, h, n, 4)
-    elif m == Method.FE:
+    elif m is Method.FE:
         return fEuler(f, x0, y0, h, n)
-    elif m == Method.RK4:
+    elif m is Method.RK4:
         return rk4(f, x0, y0, h, n)
     else:
-        print("Solver not yet implemented")
+        print("Solver %s not yet implemented" % m)
         exit(0)
 
 def plot (f, fdy, x0, y0, xn, h, m):
@@ -215,7 +215,7 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
     res = np.zeros([len(Method), maxExp+1])
     if sol is None:
         intervals = 2**(maxExp+4)
-        sol = solve(f, fdy, x0, y0, (xn-x0)/(intervals), intervals+1, Method.RK4)[0::int(2**4)]
+        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.RK4)[0::int(2**4)]
     else:
         sol = sol(np.linspace(x0, xn, 2**maxExp+1))
     for md in Method:
@@ -237,9 +237,45 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
     plt.show()
     return None
 
+def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
+    procs = 2**procExp
+    hC = (xn-x0)/procs
+    u = solve(f, fdy, x0, y0, hC, procs+1, coarse)
+    r = np.zeros((2**exp)+1)
+    fIpP = 2**(exp-procExp)
+    kMAX = 4
+    for k in range(0,kMAX):
+        d = np.zeros(procs+1)
+        for j in range(1,procs+1):
+            g = solve(f, fdy, x0+(j*hC), u[j-1], hC, 2, coarse)
+            fn = solve(f, fdy, x0+(j*hC), u[j-1], hC/fIpP, fIpP+1, fine)
+            if k == kMAX-1:
+                r[fIpP*(j-1):fIpP*j+1] = fn
+            d[j] = fn[fIpP] - g[1]
+        cc = np.zeros(procs+1)
+        for j in range(1,procs+1):
+            g = solve(f, fdy, x0+(j*hC), u[j-1], hC, 2, coarse)
+            cc[j] = g[1]
+            u[j] = g[1] + d[j]
+    return (u, r)
+
+def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
+    xr = np.linspace(x0, xn, (2**exp)+1)
+    xu = np.linspace(x0, xn, (2**procExp)+1)
+    (u,r) = parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine)
+
+    if not (u is None):
+        plt.plot(xr, r)
+        plt.plot(xu, u)
+        plt.xlabel('t')
+        plt.ylabel('y(t)')
+        plt.axis('tight')
+        plt.show()
+
 #plot(fn, fn_dy, -20, 10, 20, 0.001, Method.BDF4)
 #plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**4, Method.BEn)
 #print(newton(lambda x: (x-1)*(x+1), lambda x: (x+1)+(x-1), 0.000001))
 #error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
 #error(fn, fn_dy, -20, 10, 20, 18, None)
-error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))))
+#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))))
+plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 8, 3, Method.FE, Method.RK4)
