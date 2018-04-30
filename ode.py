@@ -229,17 +229,17 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
                 #maximumsnorm
                 res[md.value-1][i] = np.max(np.abs(apx - (sol[0::2**(maxExp-i)])))
                 #euklidische norm
-                #res[md.value-1][i] = m.sqrt(np.sum((apx - (sol[0::2**(maxExp-i)]))**2))
+                #res[md.value-1][i] = m.sqrt(np.sum((apx - (sol[0::2**(maxExp-i)]))**2)/(intervals+1))
                 #summennorm
-                #res[md.value-1][i] = np.sum(np.abs(apx - (sol[0::2**(maxExp-i)])))
+                #res[md.value-1][i] = np.sum(np.abs(apx - (sol[0::2**(maxExp-i)])))/(intervals+1
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
     plt.legend(Method)
     plt.show()
     return None
 
-#plot(fn, fn_dy, -20, 10, 20, 0.01, Method.RK4)
+#plot(fn, fn_dy, -20, 10, 20, 0.001, Method.BDF4)
 #plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**4, Method.BEn)
 #print(newton(lambda x: (x-1)*(x+1), lambda x: (x+1)+(x-1), 0.000001))
 #error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
 #error(fn, fn_dy, -20, 10, 20, 18, None)
-error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 19, lambda x: 1/(1+(m.e**(-x))))
+error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))))
