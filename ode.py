@@ -2,9 +2,11 @@ import numpy as np
 import math as m
 import matplotlib.pylab as plt
 from enum import Enum, auto
+import multiprocessing as mp
 
 MAXITER = 100
-NEWTON_ACC = 1.0e-12
+NEWTON_ACC = 1.0e-15
+kMAX = 32 
 
 class Method(Enum):
 	BEn = auto()
@@ -13,6 +15,19 @@ class Method(Enum):
 	BDF4 = auto()
 	FE = auto()
 	RK4 = auto()
+    #BDF1 = auto()
+    #BDF2 = auto()
+    #BDF3 = auto()
+    #BDF4 = auto()
+    #BDF5 = auto()
+    #BDF6 = auto()
+
+class Norm(Enum):
+    Max = auto()
+    Euk = auto()
+    Sum = auto()
+
+NORM = Norm.Max
 
 def fn (t,y):
     return np.sin(t * y)
@@ -32,7 +47,7 @@ def newton(f, fdx, x0):
     # Lokales Extremum: Schlecht
     n = c - f(c) / fdx(c)
     # Sollte vermutlich relativ zu x sein.
-    while abs(c-n) >= NEWTON_ACC:
+    while abs(c-n)/abs(n) >= NEWTON_ACC:
         #print(abs(c-n))
         if itr >= MAXITER:
             return None
@@ -194,6 +209,18 @@ def solve (f, fdy, x0, y0, h, n, m):
         return fEuler(f, x0, y0, h, n)
     elif m is Method.RK4:
         return rk4(f, x0, y0, h, n)
+#    if m is Method.BDF1:
+#        return bdf(f, fdy, x0, y0, h, n, 1)
+#    elif m is Method.BDF2:
+#        return bdf(f, fdy, x0, y0, h, n, 2)
+#    elif m is Method.BDF3:
+#        return bdf(f, fdy, x0, y0, h, n, 3)
+#    elif m is Method.BDF4:
+#        return bdf(f, fdy, x0, y0, h, n, 4)
+#    elif m is Method.BDF5:
+#        return bdf(f, fdy, x0, y0, h, n, 5)
+#    elif m is Method.BDF6:
+#        return bdf(f, fdy, x0, y0, h, n, 6)
     else:
         print("Solver %s not yet implemented" % m)
         exit(0)
@@ -211,27 +238,71 @@ def plot (f, fdy, x0, y0, xn, h, m):
         plt.axis('tight')
         plt.show()
 
+def norm(v,n):
+    if n is Norm.Max:
+        return np.max(np.abs(v))
+    elif n is Norm.Euk:
+        return m.sqrt(np.sum((v)**2))/(len(v))
+    elif n is Norm.Sum:
+        return np.sum(np.abs(v))/(len(v))
+    else:
+        print("Norm %s not yet implemented" % n)
+        exit(0)
+
+
+class ErrorProcess(mp.Process):
+    def __init__(self, f, fdy, x0, y0, xn, maxExp, sol, meth, q):
+        super(ErrorProcess, self).__init__()
+        self.f = f
+        self.fdy = fdy
+        self.x0 = x0
+        self.y0 = y0
+        self.xn = xn
+        self.maxExp = maxExp
+        self.sol = sol
+        self.md = meth
+        self.res = np.zeros(maxExp+1)
+        self.q = q
+
+    def run(self):
+        last = mp.Value('d', 0.0)
+        def lastExp():
+            intervals = 2**self.maxExp
+            apx = solve(self.f, self.fdy, self.x0, self.y0, (self.xn-self.x0)/intervals, intervals+1, self.md)
+            last.value = 0.0 if apx is None else norm(apx-self.sol,NORM)
+        t = mp.Process(target=lastExp)
+        t.start()
+        for i in range(0,self.maxExp):
+            intervals = 2**i
+            apx = solve(self.f, self.fdy, self.x0, self.y0, (self.xn-self.x0)/intervals, intervals+1, self.md)
+            self.res[i] = 0.0 if apx is None else norm(apx-(self.sol[0::2**(self.maxExp-i)]),NORM)
+        t.join()
+        self.res[self.maxExp] = last.value
+        self.q.put((self.md,self.res))
+
+
 def error (f, fdy, x0, y0, xn, maxExp, sol):
     res = np.zeros([len(Method), maxExp+1])
     if sol is None:
         intervals = 2**(maxExp+4)
-        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.RK4)[0::int(2**4)]
+        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.BDF6)[0::int(2**4)]
     else:
         sol = sol(np.linspace(x0, xn, 2**maxExp+1))
+
+    threads = []
+    q = mp.Queue()
     for md in Method:
-        print(md)
-        for i in range(0,maxExp+1):
-            intervals = 2**i
-            apx = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, md)
-            if apx is None:
-                res[md.value-1][i] = 0
-            else:
-                #maximumsnorm
-                res[md.value-1][i] = np.max(np.abs(apx - (sol[0::2**(maxExp-i)])))
-                #euklidische norm
-                #res[md.value-1][i] = m.sqrt(np.sum((apx - (sol[0::2**(maxExp-i)]))**2)/(intervals+1))
-                #summennorm
-                #res[md.value-1][i] = np.sum(np.abs(apx - (sol[0::2**(maxExp-i)])))/(intervals+1
+        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, md, q)
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    while not q.empty():
+        (md, rs) = q.get()
+        res[md.value-1] = rs
+
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
     plt.legend(Method)
     plt.show()
@@ -243,30 +314,89 @@ def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
     u = solve(f, fdy, x0, y0, hC, procs+1, coarse)
     r = np.zeros((2**exp)+1)
     fIpP = 2**(exp-procExp)
-    kMAX = 4
     for k in range(0,kMAX):
+        print(u)
         d = np.zeros(procs+1)
-        for j in range(1,procs+1):
-            g = solve(f, fdy, x0+(j*hC), u[j-1], hC, 2, coarse)
-            fn = solve(f, fdy, x0+(j*hC), u[j-1], hC/fIpP, fIpP+1, fine)
+        for j in range(0,procs):
+            g = solve(f, fdy, x0+(j*hC), u[j], hC, 2, coarse)
+            print(x0+(j*hC))
+            fn = solve(f, fdy, x0+(j*hC), u[j], hC/fIpP, fIpP+1, fine)
             if k == kMAX-1:
-                r[fIpP*(j-1):fIpP*j+1] = fn
-            d[j] = fn[fIpP] - g[1]
+                print(fn)
+                r[fIpP*j:fIpP*(j+1)+1] = fn
+            d[j+1] = fn[fIpP] - g[1]
         cc = np.zeros(procs+1)
-        for j in range(1,procs+1):
-            g = solve(f, fdy, x0+(j*hC), u[j-1], hC, 2, coarse)
+        for j in range(0,procs):
+            g = solve(f, fdy, x0+(j*hC), u[j], hC, 2, coarse)
             cc[j] = g[1]
-            u[j] = g[1] + d[j]
+            u[j+1] = g[1] + d[j+1]
+        print(u)
     return (u, r)
+
+def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
+    r = mp.Array('d', int((2**exp)+1))
+    wks = []
+    h = (xn-x0)/(2**exp)
+    steps_rem = 2**exp
+    last_prev = x0
+    toP = None
+    def paraworker(x0,n,off,yp,ynx):
+        v, val = (None, None)
+        prevC, prevF = (None,None)
+        for k in range(kMAX):
+            if yp is None:
+                (v,val) = (k,y0)
+            else:
+                (v,val) = yp.recv()
+
+            if not v == k:
+                print("version mismatch")
+            else:
+                print(val)
+            cSteps = 1
+            g = solve(f, fdy, x0, val, h*n/(2**cSteps), 2**cSteps+1, coarse)
+            print(x0)
+            if k == 0:
+                nxt = g[2**cSteps]
+            else:
+                nxt = g[2**cSteps] + prevF - prevC
+            prevC = g[2**cSteps]
+            print(nxt)
+            ynx.send((k,nxt))
+            fn = solve(f, fdy, x0, val, h, n+1, fine)
+            print("%d %i" % (h, n+1))
+            if k == kMAX-1:
+                r[off:off+n+1] = fn
+            prevF = fn[n]
+            #print(y)
+            #ynx.send((k,y))
+            #sentY = y
+        print("bye")
+        return None
+    for rems in range(procs,0,-1):
+        steps = int(steps_rem/rems)
+        print(steps_rem)
+        a,b = mp.Pipe()
+        w = mp.Process(target=paraworker, args=(last_prev, steps, 2**exp-steps_rem, toP, a))
+        toP = b
+        steps_rem -= steps
+        last_prev += h*steps
+        w.start()
+        wks.append(w)
+    for w in wks:
+        w.join()
+        print("done")
+    return (y0, r)
+
 
 def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
     xr = np.linspace(x0, xn, (2**exp)+1)
-    xu = np.linspace(x0, xn, (2**procExp)+1)
-    (u,r) = parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine)
+    #xu = np.linspace(x0, xn, (2**procExp)+1)
+    (u,r) = parareal_procs(f, fdy, x0, y0, xn, exp, procExp, coarse, fine)
 
     if not (u is None):
         plt.plot(xr, r)
-        plt.plot(xu, u)
+        #plt.plot(xu, u)
         plt.xlabel('t')
         plt.ylabel('y(t)')
         plt.axis('tight')
@@ -276,6 +406,7 @@ def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
 #plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**4, Method.BEn)
 #print(newton(lambda x: (x-1)*(x+1), lambda x: (x+1)+(x-1), 0.000001))
 #error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
-#error(fn, fn_dy, -20, 10, 20, 18, None)
-#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))))
-plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 8, 3, Method.FE, Method.RK4)
+#error(fn, fn_dy, -20, 10, 20, 20, None)
+#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 24, lambda x: 1/(1+(m.e**(-x))))
+#plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, 3, Method.FE, Method.BDF4)
+plot_pr(fn,fn_dy, -20, 10, 20, 22, 100, Method.RK4, Method.BDF4)
