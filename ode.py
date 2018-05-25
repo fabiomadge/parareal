@@ -3,18 +3,23 @@ import math as m
 import matplotlib.pylab as plt
 from enum import Enum, auto
 import multiprocessing as mp
+import time
+import os
+import sys
 
 MAXITER = 100
 NEWTON_ACC = 1.0e-15
-kMAX = 32 
+PARA_ACC = 1.0e-6
+kMAX = 12
 
 class Method(Enum):
-	BEn = auto()
-	BEf = auto()
-	TR = auto() 
-	BDF4 = auto()
-	FE = auto()
-	RK4 = auto()
+    BEn = auto()
+    BEf = auto()
+    TR = auto()
+    BDF4 = auto()
+    FE = auto()
+    RK4 = auto()
+    PRBDF4 = auto()
     #BDF1 = auto()
     #BDF2 = auto()
     #BDF3 = auto()
@@ -27,7 +32,12 @@ class Norm(Enum):
     Euk = auto()
     Sum = auto()
 
-NORM = Norm.Max
+class PrStat(Enum):
+    ChainOK = auto()
+    ChainBroken = auto()
+    Terminate = auto()
+
+NORM = Norm.Euk
 
 def fn (t,y):
     return np.sin(t * y)
@@ -79,7 +89,7 @@ def bEuler_newton (f, fdy, x0, y0, h, n):
     print("%d iteration over %d steps" % (its, n))
     return r
 
-# Backward Euler fixed-point 
+# Backward Euler fixed-point
 def bEuler_fxpt(f, x0, y0, h, n):
     r = np.zeros(n)
     r[0] = y0
@@ -167,7 +177,7 @@ def bdf(f, fdy, x0, y0, h, n, maxord):
             return None
         r[i] = res[0]
         its += res[1]
-    print("%d iteration over %d steps" % (its, n))
+    #print("%d iteration over %d steps" % (its, n))
     return r
 
 # Forward Euler
@@ -195,7 +205,6 @@ def rk4 (f, x0, y0, h, n):
         t += h
     return r
 
-
 def solve (f, fdy, x0, y0, h, n, m):
     if m is Method.BEn:
         return bEuler_newton(f, fdy, x0, y0, h, n)
@@ -209,6 +218,8 @@ def solve (f, fdy, x0, y0, h, n, m):
         return fEuler(f, x0, y0, h, n)
     elif m is Method.RK4:
         return rk4(f, x0, y0, h, n)
+    elif m is Method.PRBDF4:
+        return parareal_procs(f, fdy, x0, y0, x0 + h*(n-1), int(np.log2(n-1)), 12, Method.BDF4, Method.RK4)[1]
 #    if m is Method.BDF1:
 #        return bdf(f, fdy, x0, y0, h, n, 1)
 #    elif m is Method.BDF2:
@@ -226,16 +237,14 @@ def solve (f, fdy, x0, y0, h, n, m):
         exit(0)
 
 def plot (f, fdy, x0, y0, xn, h, m):
-    x = np.linspace(x0, xn, int((xn-x0)/h)+1)
     y = solve(f, fdy, x0, y0, h, int((xn-x0)/h)+1, m)
-
-    # print(y)
+    x = np.linspace(x0, xn, len(y))
 
     if not (y is None):
         plt.plot(x, y)
         plt.xlabel('t')
         plt.ylabel('y(t)')
-        plt.axis('tight')
+        plt.tight_layout()
         plt.show()
 
 def norm(v,n):
@@ -305,6 +314,7 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
 
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
     plt.legend(Method)
+    plt.tight_layout()
     plt.show()
     return None
 
@@ -339,74 +349,145 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
     h = (xn-x0)/(2**exp)
     steps_rem = 2**exp
     last_prev = x0
-    toP = None
-    def paraworker(x0,n,off,yp,ynx):
+    (toPrev, toFst) = mp.Pipe()
+    def paraworker(x0,n,off,yp,ynx,idx):
         v, val = (None, None)
         prevC, prevF = (None,None)
+        ypp = 0.0
+        fn = None
         for k in range(kMAX):
-            if yp is None:
-                (v,val) = (k,y0)
+            if idx == 0 and k == 0:
+                    (v,val,stat) = (k,y0,PrStat.ChainOK)
             else:
-                (v,val) = yp.recv()
-
+                #if yp.poll():
+                    #print(' ' * idx + "blocked")
+                    (v,val,stat) = yp.recv()
+                # else:
+                    # print("timeout for blocking exeeded at %i" % idx)
+                    # ynx.send((k,float('nan'),PrStat.Terminate))
+                    # exit(1)
+                #print(' ' * idx + "received: " + str(v) + " " + str(val) + " " + str(stat))
+            if idx == 0:
+                if stat == PrStat.ChainOK and not k == 0:
+                    stat = PrStat.Terminate
+                    print("terminator launched")
+                elif stat == PrStat.Terminate:
+                    pass
+                else:
+                    stat = PrStat.ChainOK
+                if v+1 == k:
+                    v = k
+            #print(idx*' ' + str(k))
             if not v == k:
-                print("version mismatch")
-            else:
+                print("\033[1;4;45mversion mismatch\033[0m")
+                print(v)
                 print(val)
-            cSteps = 1
-            g = solve(f, fdy, x0, val, h*n/(2**cSteps), 2**cSteps+1, coarse)
-            print(x0)
-            if k == 0:
-                nxt = g[2**cSteps]
+                print(stat)
+                print(k)
+                print(idx)
+                print(ypp)
+                exit(1)
+            if k <= idx and not stat is PrStat.Terminate:
+                #cSteps is increased before using the coarse solver
+                startStep = 1
+                cSteps = startStep - 1
+                g = None
+                while g is None and cSteps - startStep <= 4:
+                    cSteps = cSteps+1
+                    g = solve(f, fdy, x0, val, h*n/(2**cSteps), 2**cSteps+1, coarse)
+                if g is None:
+                    print(idx * ' ' + "coarse solver failed")
+                    ynx.send((k,float('nan'),PrStat.Terminate))
+                    exit(1)
+                    #print("x0=%f val=%f h=%f n=%i m=%s" % (x0,val,h*n/(2**cSteps),2**cSteps+1,str(coarse)))
+                #print(h*n)
+                #print("x0=%f val=%f h=%f n=%i m=%s" % (x0,val,h*n/(2**cSteps),2**cSteps+1,str(coarse)))
+                #print(g)
+                if k == 0:
+                    nxt = g[2**cSteps]
+                else:
+                    nxt = g[2**cSteps] + prevF - prevC
+                corr = abs(ypp - nxt) / abs(nxt)
+                stat = PrStat.ChainOK if stat is PrStat.ChainOK and corr <= PARA_ACC else PrStat.ChainBroken
+                #print(corr)
+                #print(idx*' ' + ("\033[0;31m" if corr >= PARA_ACC else "\033[0;32m") + str(k) + "\033[0m" + " (" + str(corr) + ")")
+                prevC = g[2**cSteps]
+                ypp = nxt
+                #print(nxt)
+                if not (k == kMAX-1 and idx == procs-1):
+                    ynx.send((k,ypp,stat))
+                    #print(' ' * idx + "msg sent: " + str(k) + " " + str(ypp) + " " + str(stat))
+                if not k == kMAX-1:
+                    fn = solve(f, fdy, x0, val, h, n+1, fine)
+                    if fn is None:
+                        print(idx * ' ' + "fine solver failed")
+                        ynx.send((k,float('nan'),PrStat.Terminate))
+                        exit(1)
+                    #print(' ' * idx + "x0=%f val=%f h=%f n=%i m=%s" % (x0,val,h,n+1,str(fine)) + ' ' + str(k))
+                    #print(' ' * idx + str(fn) + ' ' + str(k))
+                    prevF = fn[n]
+                #print("%d %i" % (h, n+1))
+                else:
+                    r[off:off+n+1] = fn
+                    #print(' ' * idx + "fine result submitted")
+                #print(y)
+                #ynx.send((k,y))
+                #sentY = y
             else:
-                nxt = g[2**cSteps] + prevF - prevC
-            prevC = g[2**cSteps]
-            print(nxt)
-            ynx.send((k,nxt))
-            fn = solve(f, fdy, x0, val, h, n+1, fine)
-            print("%d %i" % (h, n+1))
-            if k == kMAX-1:
-                r[off:off+n+1] = fn
-            prevF = fn[n]
-            #print(y)
-            #ynx.send((k,y))
-            #sentY = y
-        print("bye")
+                #print(idx*' ' + "idle " + str(stat))
+                if stat is PrStat.Terminate or k == kMAX-1:
+                    r[off:off+n+1] = fn
+                    #print(' ' * idx + "fine result submitted")
+                try:
+                    ynx.send((k,fn[-1],stat))
+                    #print(' ' * idx + "idle message sent")
+                except:
+                    #print(' ' * idx + "message sending failed")
+                    pass
+                if stat is PrStat.Terminate:
+                    break
+        #print("bye")
         return None
     for rems in range(procs,0,-1):
         steps = int(steps_rem/rems)
-        print(steps_rem)
-        a,b = mp.Pipe()
-        w = mp.Process(target=paraworker, args=(last_prev, steps, 2**exp-steps_rem, toP, a))
-        toP = b
+        #print(steps_rem)
+        a,b = (toFst, None) if rems == 1 else mp.Pipe()
+        w = mp.Process(target=paraworker, args=(last_prev, steps, 2**exp-steps_rem, toPrev, a, procs-rems))
+        toPrev = b
         steps_rem -= steps
         last_prev += h*steps
         w.start()
         wks.append(w)
     for w in wks:
         w.join()
-        print("done")
-    return (y0, r)
+        #print("done")
+    return (y0, np.array(r))
 
 
 def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
     xr = np.linspace(x0, xn, (2**exp)+1)
     #xu = np.linspace(x0, xn, (2**procExp)+1)
     (u,r) = parareal_procs(f, fdy, x0, y0, xn, exp, procExp, coarse, fine)
-
+    #u = None
     if not (u is None):
         plt.plot(xr, r)
         #plt.plot(xu, u)
         plt.xlabel('t')
         plt.ylabel('y(t)')
-        plt.axis('tight')
+        plt.tight_layout()
         plt.show()
 
-#plot(fn, fn_dy, -20, 10, 20, 0.001, Method.BDF4)
-#plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**4, Method.BEn)
+
+st = time.time()
+#plot(fn, fn_dy, -20, 10, 20, 0.00001, Method.PRBDF4)
+#plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**18, Method.PRBDF4)
 #print(newton(lambda x: (x-1)*(x+1), lambda x: (x+1)+(x-1), 0.000001))
 #error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
 #error(fn, fn_dy, -20, 10, 20, 20, None)
-#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 24, lambda x: 1/(1+(m.e**(-x))))
+error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, lambda x: 1/(1+(m.e**(-x))))
 #plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, 3, Method.FE, Method.BDF4)
-plot_pr(fn,fn_dy, -20, 10, 20, 22, 100, Method.RK4, Method.BDF4)
+#plot_pr(fn,fn_dy, -20, 10, 20, 22, 24, Method.BDF4, Method.BDF4)
+#print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.PRBDF4))
+#print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.RK4))
+print("%d seconds elapsed" % (time.time() - st))
+
