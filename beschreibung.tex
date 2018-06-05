@@ -1,0 +1,45 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{cite}
+\usepackage[ngerman]{babel}
+\title{Projektbeschreibung\\
+    \large Parallele Integration für die Schaltungssimulation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+In der Physik lassen sich viele Vorgänge durch Differentialgleichungen beschreiben. Im Allgemeinen existiert aber keine exakte geschlossene Lösung für eine solche Gleichung, dadurch wird der Einsatz numerischer Verfahren notwendig. Die populären Verfahren zur Lösung des Anfangswertproblems haben alle gemein, dass sie sich als Rekursionsgleichung darstellen lassen. Der Ansatz ist hier das gewünschte Ergebnis nicht direkt zu Berechnen, sondern das Problem in kleinere Probleme zu teilen und auf diese die gleiche Strategie anzuwenden, bis es trivial lösbar wird. Dabei ergibt sich folglich eine Abhängigkeitshierarchie, welche eine weitgehend sequenzielle Berechnung notwendig macht. Für schwierige Probleme kann so eine Berechnung viele Stunden dauern. Diese Laufzeiten haben sich in den letzten Jahren auch nicht wesentlich verbessert, nachdem die Taktfrequenzen der Prozessoren ebenfalls stagniert haben. Um dieses Problem auszugeichen, haben die Hersteller begonnen mehrere Prozessoren in einem Paket zu bündeln.\\
+Mehrere Prozessoren auszunutzen ist im Kontext eines sequenziellen Programms im Allgemeinen sehr schwierig. Die Programme müssen einzeln auf potenziell nebenläufige Abschnitte untersucht werden. Bei den Algorithmen zur Lösung des Anfangswertproblems ist auch dieser naive Ansatz aufgrund der starken Abhängigkeiten nicht ausreichend. Ein Ansatz für eine Parallelisierung ist "`parallel in time"', also Unterteilung des zu berechnenden Zeitraums in mehrere abhängige AWPs. Die Idee des Parareal Algorithmus ist es einen groben mit einem feinen Lösungsverfahren zu kombinieren. Zunächst wird des grobe Verfahren verwendet um Abschätzungen für die Anfangswerte der Zeitabschnitte zu gewinnen. In einer Fixpunktiteration werden die Ergebnisse der beiden Verfahren genommen um die Qualität der Schätzung mit jeder Iteration zu steigern.\\
+Sobald in der analogen Schaltungssimulation dynamische Elemente vorkommen, müssen auch Differentialgleichungen gelöst werden. Aufgabe dieser Arbeit ist es, in diesem Kontext die Eignung des Parareal Algorithmus zu untersuchen.
+
+\subsection*{Meilensteine}
+\subsubsection*{Literaturstudie}
+Beginnend mit~\cite{Gander:2015} betreibt der Student eine Literaturstudie. Relevante Themen sind hier Konvergenz, \ldots(?)
+\subsubsection*{Prototyping}
+Um eine Vergleichsgrundlage zu schaffen und das Verhalten des Parareal Algorithmus näher kennenzulernen, beginnt der Student seine praktische Arbeit, indem er einige Methoden zum Lösen von AWPs implementiert und an verschiedenen Beispielen, wie der Logistischen Funktion testen. Diese Methoden kombiniert er anschließend im Parareal Algorithmus. Zunächst kann die Implementation sequenziell sein, sollte aber anschließend echt parallel werden.
+\subsubsection*{Umsetzung}
+Der Schaltungsimulator "`tictac"' kann "`SPICE"'-Netzlisten verarbeiten und einige Analysen durchführen. Er ist in C\texttt{++} geschrieben und soll um parallele Integration erweitert werden. Die vorhandene Methode zur Lösung der AWPs, arbeitet mit dynamischer Schrittweite. Der Student verwendet diese Lösungsmethode mit unterschiedlichen Toleranzen um die grobe und die feine Methode zu erhalten. Das Ergebnis evaluiert er anhand verschiedener Beispielnetzlisten.
+
+\subsection*{Zeitplan}
+
+\begin{tabular}{ r l }
+    09.04.2018 & Beginn MA2304\\
+    31.07.2018 & Prüfung MA2304\\
+    01.09.2018 & Beginn Projektarbeit: Literaturstudie\\
+    15.09.2018 & Beginn Prototyp\\
+    01.01.2019 & Beginn Umsetzung\\
+    01.03.2019 & Abschluss Praktischer Teil\\
+    01.04.2019 & Dokumentation\\
+    15.04.2019 & Präsentation\\
+  \end{tabular}
+
+\subsection*{Vorlesung}
+
+Um für die Literaturstudie vorzubereiten, besucht der Student die Vorlesung: Numerik gewöhnlicher Differentialgleichungen [MA2304]. Einen großen Teil der Vorlesung stellt die Vorstellung und Bewertung verschiedener Methoden zum numerischen Lösen von AWPs dar. Diese Methoden werden im Parareal Algorithmus kombiniert.
+
+\bibliographystyle{abbrv}
+\bibliography{cites}
+
+\end{document}
