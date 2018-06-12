@@ -10,7 +10,7 @@ import sys
 MAXITER = 100
 NEWTON_ACC = 1.0e-15
 PARA_ACC = 1.0e-6
-kMAX = 12
+kMAX = 4
 
 class Method(Enum):
     BEn = auto()
@@ -205,7 +205,7 @@ def rk4 (f, x0, y0, h, n):
         t += h
     return r
 
-def solve (f, fdy, x0, y0, h, n, m):
+def solve (f, fdy, x0, y0, h, n, m, **kwargs):
     if m is Method.BEn:
         return bEuler_newton(f, fdy, x0, y0, h, n)
     elif m is Method.BEf:
@@ -215,11 +215,11 @@ def solve (f, fdy, x0, y0, h, n, m):
     elif m is Method.BDF4:
         return bdf(f, fdy, x0, y0, h, n, 4)
     elif m is Method.FE:
-        return fEuler(f, x0, y0, h, n)
+        return fEuler(f, x0, y0, h)
     elif m is Method.RK4:
         return rk4(f, x0, y0, h, n)
     elif m is Method.PRBDF4:
-        return parareal_procs(f, fdy, x0, y0, x0 + h*(n-1), int(np.log2(n-1)), 12, Method.BDF4, Method.RK4)[1]
+        return parareal_procs(f, fdy, x0, y0, x0 + h*(n-1), int(np.log2(n-1)), 12, Method.BDF4, Method.RK4, **kwargs)[1]
 #    if m is Method.BDF1:
 #        return bdf(f, fdy, x0, y0, h, n, 1)
 #    elif m is Method.BDF2:
@@ -260,7 +260,7 @@ def norm(v,n):
 
 
 class ErrorProcess(mp.Process):
-    def __init__(self, f, fdy, x0, y0, xn, maxExp, sol, meth, q):
+    def __init__(self, f, fdy, x0, y0, xn, maxExp, sol, meth, idx, q, **kwargs):
         super(ErrorProcess, self).__init__()
         self.f = f
         self.fdy = fdy
@@ -272,22 +272,24 @@ class ErrorProcess(mp.Process):
         self.md = meth
         self.res = np.zeros(maxExp+1)
         self.q = q
+        self.idx = idx
+        self.kwargs = kwargs
 
     def run(self):
         last = mp.Value('d', 0.0)
         def lastExp():
             intervals = 2**self.maxExp
-            apx = solve(self.f, self.fdy, self.x0, self.y0, (self.xn-self.x0)/intervals, intervals+1, self.md)
+            apx = solve(self.f, self.fdy, self.x0, self.y0, (self.xn-self.x0)/intervals, intervals+1, self.md, **self.kwargs)
             last.value = 0.0 if apx is None else norm(apx-self.sol,NORM)
         t = mp.Process(target=lastExp)
         t.start()
         for i in range(0,self.maxExp):
             intervals = 2**i
-            apx = solve(self.f, self.fdy, self.x0, self.y0, (self.xn-self.x0)/intervals, intervals+1, self.md)
+            apx = solve(self.f, self.fdy, self.x0, self.y0, (self.xn-self.x0)/intervals, intervals+1, self.md, **self.kwargs)
             self.res[i] = 0.0 if apx is None else norm(apx-(self.sol[0::2**(self.maxExp-i)]),NORM)
         t.join()
         self.res[self.maxExp] = last.value
-        self.q.put((self.md,self.res))
+        self.q.put((self.idx,self.res))
 
 
 def error (f, fdy, x0, y0, xn, maxExp, sol):
@@ -301,7 +303,7 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
     threads = []
     q = mp.Queue()
     for md in Method:
-        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, md, q)
+        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, md, md.value-1, q)
         t.start()
         threads.append(t)
 
@@ -309,14 +311,59 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
         t.join()
 
     while not q.empty():
-        (md, rs) = q.get()
-        res[md.value-1] = rs
+        (idx, rs) = q.get()
+        res[idx] = rs
 
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
     plt.legend(Method)
     plt.tight_layout()
     plt.show()
     return None
+
+def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
+    res = np.zeros([maxIter, maxExp+1])
+    if sol is None:
+        intervals = 2**(maxExp+4)
+        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.BDF4)[0::int(2**4)]
+    else:
+        sol = sol(np.linspace(x0, xn, 2**maxExp+1))
+
+    threads = []
+    q = mp.Queue()
+    for m in range(1,maxIter+1):
+        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, Method.PRBDF4, m-1, q, kMAX = m, PARA_ACC = np.nextafter(0,1))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    while not q.empty():
+        (idx, rs) = q.get()
+        res[idx] = rs
+
+    plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
+    plt.legend(range(1,maxIter+1))
+    plt.tight_layout()
+    plt.show()
+    return None
+
+def iterStudy(f, fdy, x0, y0, h, n, maxIter):
+    global kMAX
+    prevkMAX = kMAX
+    y = np.zeros([maxIter, n])
+    for m in range(1,maxIter+1):
+        kMAX = m
+        y[m-1] = solve(f, fdy, x0, y0, h, n, Method.PRBDF4)
+    kMAX = prevkMAX
+    x = np.linspace(x0, x0 + (n-1) * h, n)
+
+    plt.plot(x, np.transpose(y))
+    plt.xlabel('t')
+    plt.ylabel('y(t)')
+    plt.tight_layout()
+    plt.legend(range(1,maxIter+1))
+    plt.show()
 
 def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
     procs = 2**procExp
@@ -343,7 +390,9 @@ def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
         print(u)
     return (u, r)
 
-def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
+def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine, **kwargs):
+    kMX = kwargs.get('kMAX', kMAX)
+    PR_ACC = kwargs.get('PARA_ACC', PARA_ACC)
     r = mp.Array('d', int((2**exp)+1))
     wks = []
     h = (xn-x0)/(2**exp)
@@ -355,7 +404,7 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
         prevC, prevF = (None,None)
         ypp = 0.0
         fn = None
-        for k in range(kMAX):
+        for k in range(kMX+1):
             if idx == 0 and k == 0:
                     (v,val,stat) = (k,y0,PrStat.ChainOK)
             else:
@@ -370,7 +419,7 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
             if idx == 0:
                 if stat == PrStat.ChainOK and not k == 0:
                     stat = PrStat.Terminate
-                    print("terminator launched")
+                    print("terminator launched after %i iterations" % k)
                 elif stat == PrStat.Terminate:
                     pass
                 else:
@@ -389,7 +438,7 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
                 exit(1)
             if k <= idx and not stat is PrStat.Terminate:
                 #cSteps is increased before using the coarse solver
-                startStep = 1
+                startStep = 7
                 cSteps = startStep - 1
                 g = None
                 while g is None and cSteps - startStep <= 4:
@@ -408,16 +457,16 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
                 else:
                     nxt = g[2**cSteps] + prevF - prevC
                 corr = abs(ypp - nxt) / abs(nxt)
-                stat = PrStat.ChainOK if stat is PrStat.ChainOK and corr <= PARA_ACC else PrStat.ChainBroken
+                stat = PrStat.ChainOK if stat is PrStat.ChainOK and corr <= PR_ACC else PrStat.ChainBroken
                 #print(corr)
-                #print(idx*' ' + ("\033[0;31m" if corr >= PARA_ACC else "\033[0;32m") + str(k) + "\033[0m" + " (" + str(corr) + ")")
+                #print(idx*' ' + ("\033[0;31m" if corr >= PR_ACC else "\033[0;32m") + str(k) + "\033[0m" + " (" + str(corr) + ")")
                 prevC = g[2**cSteps]
                 ypp = nxt
                 #print(nxt)
-                if not (k == kMAX-1 and idx == procs-1):
+                if not (k == kMX and idx == procs-1):
                     ynx.send((k,ypp,stat))
                     #print(' ' * idx + "msg sent: " + str(k) + " " + str(ypp) + " " + str(stat))
-                if not k == kMAX-1:
+                if not k == kMX:
                     fn = solve(f, fdy, x0, val, h, n+1, fine)
                     if fn is None:
                         print(idx * ' ' + "fine solver failed")
@@ -428,14 +477,17 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, procs, coarse, fine):
                     prevF = fn[n]
                 #print("%d %i" % (h, n+1))
                 else:
-                    r[off:off+n+1] = fn
+                    if fn is None:
+                        print("no fine result available")
+                    else:
+                        r[off:off+n+1] = fn
                     #print(' ' * idx + "fine result submitted")
                 #print(y)
                 #ynx.send((k,y))
                 #sentY = y
             else:
                 #print(idx*' ' + "idle " + str(stat))
-                if stat is PrStat.Terminate or k == kMAX-1:
+                if stat is PrStat.Terminate or k == kMX:
                     r[off:off+n+1] = fn
                     #print(' ' * idx + "fine result submitted")
                 try:
@@ -480,14 +532,18 @@ def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
 
 st = time.time()
 #plot(fn, fn_dy, -20, 10, 20, 0.00001, Method.PRBDF4)
-#plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**18, Method.PRBDF4)
+#plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**22, Method.PRBDF4)
 #print(newton(lambda x: (x-1)*(x+1), lambda x: (x+1)+(x-1), 0.000001))
 #error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
 #error(fn, fn_dy, -20, 10, 20, 20, None)
-error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, lambda x: 1/(1+(m.e**(-x))))
+#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, lambda x: 1/(1+(m.e**(-x))))
 #plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, 3, Method.FE, Method.BDF4)
 #plot_pr(fn,fn_dy, -20, 10, 20, 22, 24, Method.BDF4, Method.BDF4)
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.PRBDF4))
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.RK4))
+#iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**12, 2**12+1, 7)
+#iterStudy(fn, fn_dy, -20, 10, 40/2**18, 2**18+1, 12)
+iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 19, 12, lambda x: 1/(1+(m.e**(-x))))
+#iterError(fn, fn_dy, -20, 10, 20, 18, 12, None)
 print("%d seconds elapsed" % (time.time() - st))
 
