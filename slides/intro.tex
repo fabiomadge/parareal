@@ -1,0 +1,37 @@
+\begin{frame}
+\frametitle{Problem}
+\begin{equation*}
+\frac{\partial y}{\partial t} = f(t,y) \quad \textrm{and} \quad (t_0, y_0)
+\end{equation*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Solution*}
+\begin{equation*}
+y_{k+1} = y_k + hf\left(t_{k+1}, y_{k+1}\right)
+\end{equation*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Parallel?}
+\begin{center}
+\scalebox{0.5}{\input{plots/vanilla_logistisch.pgf}}
+\end{center}
+\begin{equation*}
+\frac{\partial y}{\partial t} = y (1-y) \quad \textrm{and} \quad \left(-6, \frac{1}{1+e^6}\right)
+\end{equation*}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\scalebox{0.65}{\input{plots/coarse.pgf}}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\scalebox{0.65}{\input{plots/kmax1.pgf}}
+\end{center}
+\end{frame}
+
+

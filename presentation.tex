@@ -1,0 +1,68 @@
+\documentclass{beamer}
+    \usepackage[utf8]{inputenc}
+    \usepackage[T1]{fontenc}
+    \usepackage[greek,english]{babel}
+    \usepackage{bookmark}
+    \usepackage{mathtools}
+    \usepackage{tikz}
+    \usepackage{pgf}
+    \usepackage{listings}
+    \usepackage{gnuplottex}
+    \usepackage{fontspec}
+%    \setmainfont{DejaVu Serif}
+%    \setsansfont{DejaVu Sans}
+%    \setmonofont{DejaVu Sans Mono}
+
+    \usetheme{Berlin}
+    \setbeamertemplate{footline}{}
+    \setbeamertemplate{headline}{}
+    \setbeamertemplate{theorems}[ams style]
+    \usecolortheme{dove}
+    \usefonttheme{professionalfonts}
+    \beamertemplatenavigationsymbolsempty
+
+    \title{Parallel-in-Time Integration in Circuit Simulation}
+    \author[F. Madge]{Fabio Madge}
+    \institute{Technische Universität München}
+    \date[30.10.18]{30. October 2018}
+
+\begin{document}
+
+    \maketitle
+
+    \begin{frame}
+    \setcounter{tocdepth}{1}
+    \tableofcontents[pausesections]
+    \end{frame}
+
+    \AtBeginSection[]
+    {
+    \begin{frame}
+    \setcounter{tocdepth}{2}
+    \tableofcontents[currentsection,hideothersubsections]
+    \end{frame}
+    }
+
+    \AtBeginSubsection[]
+    {
+    \begin{frame}
+    \setcounter{tocdepth}{2}
+    \tableofcontents[currentsection,
+            currentsubsection,
+            subsectionstyle=show/shaded/hide]
+    \end{frame}
+    }
+
+    \section{Introduction}
+    \input{slides/intro}
+
+    \section{Algorithm}
+    \input{slides/algorithm}
+
+    \section{Application}
+    \input{slides/application}
+
+    \section{Conclusion}
+    \input{slides/conclusion}
+
+\end{document}
