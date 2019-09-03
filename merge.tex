@@ -28,9 +28,9 @@
 \node[below] at (4,0) {$t_{i+1}$};
 
 % exact
-\draw[] (.5,-.3) parabola  bend +(5,2.6) (5.5,2.3);
+\draw[thick] (.5,-.3) parabola  bend +(5,2.6) (5.5,2.3);
 
-\begin{scope}[thick]
+\begin{scope}[very thick]
 
 % pCoarse
 \begin{scope}[loosely dotted, color=blue]
@@ -52,7 +52,7 @@
 \end{scope}
 
 % merges
-\begin{scope}[red, very thick]
+\begin{scope}[red, ultra thick]
 \draw[->] (3,2.2) -- (3,1.95);
 \draw[->, dashed] (3,2.6) -- (3,2.35);
 
@@ -71,11 +71,11 @@
     \node[] at (3.8,.45) {correction};
 \end{scope}
 
-\draw[-, loosely dotted] (3.4,1.45) -- (3.7,1.45);
-\draw[-, dotted] (3.4,1.25) -- (3.7,1.25);
+\draw[-, loosely dotted,very thick] (3.4,1.45) -- (3.7,1.45);
+\draw[-, dotted,very thick] (3.4,1.25) -- (3.7,1.25);
 \draw[pattern color=blue,pattern=north east lines] (3.4,.9) rectangle (3.7, 1);
 \draw[pattern color=orange,pattern=north east lines] (3.4,.7) rectangle (3.7, .8);
-\draw[->,red, very thick] (3.4,.45) -- (3.7,.45);
+\draw[->,red, ultra thick] (3.4,.45) -- (3.7,.45);
 
 \end{tikzpicture}
 
