@@ -1,1 +1,35 @@
-Wir möchten parallel-in-time~\cite{Gander:2015}.
+In der Physik lassen sich viele Vorgänge durch gewöhnliche Differentialgleichungen beschreiben. Im Allgemeinen existiert aber keine exakte geschlossene Lösung für eine solche Gleichung, oder sie ist nicht sinnvoll berechenbar. Der Einsatz numerischer Verfahren ist hier notwendig. Da die Lösung der Gleichungen allein meist auch nicht eindeutig ist, wird der Problemstellung weitere Information hinzugefügt. Beispielsweise werden beim Anfangswertproblem (AWP) eine Differentialgleichung mit einem Startwert assoziiert, also der Funktionswert der Lösung an einer bestimmten Stelle festgesetzt.
+\begin{displaymath}
+    y'(t) = f(t,y(t)), \quad y(t_0) = y_0
+\end{displaymath}
+Der Anfangswert wird hier durch \(y_0\) dargestellt und die rechte Seite der Gleichung unter \(f\) abstrahiert. Die bekannten numerischen Verfahren zur Lösung eines AWP haben alle gemein, dass sie sich als Rekursionsgleichung darstellen lassen. Der Ansatz ist hier das gewünschte Ergebnis nicht direkt zu Berechnen, sondern das Problem in kleinere Probleme zu teilen und auf diese die gleiche Strategie anzuwenden, bis es trivial lösbar wird. Die Funktionswerte der Lösung werden hier schrittweise, ausgehend vom Anfangswert, an einigen Stellen berechnet. Ein Beispiel für ein solches Verfahren stellt des explizite Euler-Verfahren dar.
+\begin{displaymath}
+    y_{n+1} = y_n + hf(t_n,y_n)
+\end{displaymath}
+Die Schrittweite findet sich in \(h\) wieder. Es ergibt sich folglich eine Abhängig\-keits\-hierarchie, welche eine sequenzielle Berechnungsreihenfolge notwendig macht. Erst wenn der Wert \(y_n\) bekannt ist, kann der Wert \(y_{n+1}\) berechnet werden. Abhängig von der Komplexität des Problems und der gewünschten Genauigkeit, also der Anzahl der Zeitschritte, kann so eine Berechnung viel Rechenzeit erfordern. Diese Laufzeiten haben sich in den vergangenen Jahren auch nicht wesentlich verbessert, nachdem sich weder die Taktfrequenzen der Prozessoren, noch der numerischen Algorithmen wesentlich verbessert haben. Um weiterhin leistungsfähigere Systeme zu verkaufen, haben die Hersteller begonnen mehrere Prozessoren in einem Paket zu bündeln.\\
+
+Mehrere Prozessoren parallel zu beschäftigen, ist im Kontext eines sequenziellen Programms im Allgemeinen sehr schwierig. Zunächst einmal können Programme einzeln auf potenziell nebenläufige Abschnitte untersucht werden. Bei den Algorithmen zur Lösung des Anfangswertproblems ist auch dieser simple Ansatz aufgrund der starken Abhängigkeiten nicht zielführend. Ein Ansatz für eine Parallelisierung von Lösungsverfahren von AWPs ist "`parallel in time"', also Unterteilung des zu berechnenden Zeitraums in mehrere abhängige AWPs. Das Problem hier sind die unbekannten Anfangswerte für alle bis auf den ersten Zeitabschnitt. Die Idee des Parareal Algorithmus ist es ein grobes mit einem feinen Lösungsverfahren zu kombinieren. Zunächst wird des grobe Verfahren verwendet um Abschätzungen für die Anfangswerte der Zeitabschnitte zu gewinnen. In einer Fixpunktiteration werden die Ergebnisse der beiden Verfahren kombiniert, um die Qualität der Schätzung mit jeder Iteration zu steigern.
+\subsection*{Schaltungssimulation}
+Die Arbeit beschäftigt sich mit den Anwendung des Parareal Algorithmus in der analogen Schaltungssimulation. Hier wird das Verhalten einer elektronischen Schaltung simuliert. Eine Schaltung ist definiert durch ihre Komponenten und deren Verschaltung, also die Verbindungen zwischen den einzelnen Bauelementen. Die einzelnen Bauteile einer Schaltung lassen sich durch Gleichungen modellieren. Zusammen mit der Topologie lässt sich ein Gleichungssystem aufstellen.\\
+
+Simulatoren bieten verschiende Analysen an. Die Einfachste findet einen Arbeitspunkt einer Schaltung unter Berücksichtigung von gegebenen Randbedingungen. Ist ein System zeitvariant, zum Beispiel durch Einflüsse von außen, wird die Betrachtung über einen Zeitraum relevant. Zu diesem Zweck kann eine Transientenanalyse vorgenommen werden. Sobald dynamische Elemente in der Schaltung vorkommen, wird hier auch das Lösen von Differentialgleichungen notwendig.\\
+\begin{figure}[ht]
+    \centering
+        \begin{circuitikz}[scale=1.0]
+            \input{../cap}
+        \end{circuitikz}
+    \caption{Belasteter Kondensator}
+\label{fig:cap}
+\end{figure}
+Ziel dieser Arbeit ist es einen bestehenden Schaltungssimulator zu parallelisieren. Dessen Vorgehensweise bei einer Transientenanalyse wird Anhand vom Beispiel in Abbildung~\ref{fig:cap} beschreiben. Die Schaltung besteht aus zwei Elementen. einem Kondensator, welcher zu Beginn der Simulation geladen ist, und einem Widerstand. Obwohl für diese Schaltung eine geschlossene Lösung existiert, soll sie mithilfe numerischer Methoden approximiert werden. Das erwartete Verhalten ist, dass sich der Kondensator exponentiell in der Zeit entlädt. Der Widerstand verhindert einen Kurzschluss und durch seine Dimensionierung wird die Geschwindigkeit des Entladevorgangs bestimmt.
+
+\subsubsection*{Modifizierten Knotenanalyse}
+Die beiden wichtigen Größen in der Elektrotechnik sind die Spannung $U$ gemessen in V und Stromstärke $I$ gemessen in A. Modelle für Bauteile setzen beide Größen ins Verhältnis. Ziel der Analyse sind die Spannungen zwischen den Knoten und der Masse. In diesem Kontext sind sie auch als MKA Variablen bekannt. Die Methode macht sich das Kirchhoff’sches Stromgesetz zunutze. Es besagt, dass an jedem Knoten die Bilanz der ein- und ausgehenden Ströme jederzeit ausgeglichen ist.
+\begin{displaymath}
+    \sum_{j \in \textrm{Kanten mit dem Knoten verbunden}} i_{j} = 0
+\end{displaymath}
+Um das Gesetz anzuwenden müssen die Elementgleichungen in Leitwertsdarstellung vorliegen, also nach der Stromstärke aufgelöst werden. Ist dies nicht möglich, werden die MKA Variablen um einen Ersatzwert erweitert. Für jede Knotenspannung wird eine Gleichung mithilfe des Gesetzes aufgestellt. Für das Beispiel ergibt das Folgendes.
+\begin{displaymath}
+    \frac{u_1}{R} + C\dot{u}_1 = 0
+\end{displaymath}
+Das entstandene Gleichungssystem soll nun gelöst werden.
