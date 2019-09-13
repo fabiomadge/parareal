@@ -30,6 +30,14 @@ Die beiden wichtigen Größen in der Elektrotechnik sind die Spannung $U$ gemess
 \end{displaymath}
 Um das Gesetz anzuwenden müssen die Elementgleichungen in Leitwertsdarstellung vorliegen, also nach der Stromstärke aufgelöst werden. Ist dies nicht möglich, werden die MKA Variablen um einen Ersatzwert erweitert. Für jede Knotenspannung wird eine Gleichung mithilfe des Gesetzes aufgestellt. Für das Beispiel ergibt das Folgendes.
 \begin{displaymath}
-    \frac{u_1}{R} + C\dot{u}_1 = 0
+    C\dot{u}_1 + Gu_1 = 0\quad, G=\frac{1}{R}
 \end{displaymath}
-Das entstandene Gleichungssystem soll nun gelöst werden.
+Dies lässt sich zu folgender Darstellung in Matrixschreibweise generalisieren.
+\begin{displaymath}
+    C \cdot \dot{x} + G \cdot x = s(t)
+\end{displaymath}
+Hier sind $C$ die Kapazitätsmatrix, $G$ die Leitwertmatrix, $x$ der Vektor der MKA Variablen, $s$ die Ersatzwerte und $t$ die Zeit. Um diese Differential-algebraische Gleichung zu Lösen, bedarf es der Kombination mehrerer numerischer Verfahren. Zunächst wird ein implizietes Diskretisierungsverfahren angewendet. Im konkreten Simulator entweder implizite Euler-Verfahren, oder die Trapez-Methode. Typyischerweise unterstützen Simulatoren auch das BDF-Verfahren.
+\begin{displaymath}
+    C \cdot (\alpha x + \beta) + G \cdot x = s(t)
+\end{displaymath}
+Unter Zuhilfenahme des Newton-Verfahrens entsteht ein linares Gleichungssystem, welches von zum Beispiel vom Gauß-Verfahren gelöst werden kann.
