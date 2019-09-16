@@ -1,4 +1,12 @@
-Prinzipiell ist es sehr simpel.
+Der Kerngedanke des Parareal Algorithmus ist die Kombination eines groben Lösers \(\mathcal{G}\) mit einem feinen \(\mathcal{F}\) und wurde erstmals in~\cite{Lions:2001} beschrieben. \(\mathcal{F}\) erfüllt die ursprünglich geforderten Anforderungen an die Genauigkeit, während \(\mathcal{G}\) diese nicht erfüllen muss, jedoch eine deutlich kürzere Rechenzeit erfordern soll. Erreicht werden kann dies durch die Verwendung von einer geringeren Anzahl an Zeitschritten, oder einem weniger komplexen Diskretisierungsverfahren. Die Parallelität entsteht durch Gebietszerlegung, also dem Lösen der Gleichung an mehreren Zeitpunkten zur gleichen Zeit. Um dies zu organisieren, wird die Simulationszeit \(\left(t_0, T\right] = \bigcup_{i=0}^{P-1} \left(t_i, t_{i+1}\right]\) in \(P\) Unterintervalle aufgeteilt. Die zur Lösung der Unterintervalle notwendige Rechenzeit sollte möglichst ähnlich sein. Gleichzeitig ist es geschickt, die Schnittstellen \(\left\{t_i \,\middle|\, 1 \leq i \leq P-1\right\}\) jeweils so zu wählen, dass der zu erwartende lokale Fehler möglichst gering ist. Da jedes Unterintervall parallel simuliert werden soll, werden Startwerte benötigt. Zu diesem Zweck wird \(\mathcal{G}\) auf \(\left(t_0, T\right]\) ausgeführt.
+\begin{displaymath}
+    y_{j}^{0} = \mathcal{G}\!\left(y(t_0), t_0, t_{j}\right), \quad j \in \left\{i \,\middle|\, 0 \leq i < P\right\}
+\end{displaymath}
+Der grobe Löser \(\mathcal{G}\!\left(y, t_{A}, t_{\Omega}\right)\) wird hier als ternäre Funktion abstrahiert. Das erste Argument enthält den Startwert, das zweite den Startzeitpunkt und das letzte den Endzeitpunkt der Berechnung. \(y_j^k\) bezeichnet den Startwert für das Unterintervall \(j\) in der Iteration \(k\).
+
+\begin{displaymath}
+    y_{j+1}^{k+1} = \mathcal{G}\!\!\left(y_j^{k+1}, t_j, t_{j+1}\right) + \mathcal{F}\!\!\left(y_j^k, t_j, t_{j+1}\right) - \mathcal{G}\!\!\left(y_j^k, t_j, t_{j+1}\right)
+\end{displaymath}
 
 \begin{figure}[ht]
 \centering
