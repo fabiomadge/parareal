@@ -2,22 +2,26 @@ Der Kerngedanke des Parareal Algorithmus ist die Kombination eines groben Löser
 \begin{displaymath}
     y_{j}^{0} = \mathcal{G}\!\left(y(t_0), t_0, t_{j}\right), \quad j \in \left\{i \,\middle|\, 0 \leq i < P\right\}
 \end{displaymath}
-Der grobe Löser \(\mathcal{G}\!\left(y, t_{A}, t_{\Omega}\right)\) wird hier als ternäre Funktion abstrahiert. Das erste Argument enthält den Startwert, das zweite den Startzeitpunkt und das letzte den Endzeitpunkt der Berechnung. \(y_j^k\) bezeichnet den Startwert für das Unterintervall \(j\) in der Iteration \(k\).
-
+Der grobe Löser wird hier durch eine ternäre Funktion \(\mathcal{G}\!\left(y, t_{A}, t_{\Omega}\right) \approx y(t_\Omega)\) abstrahiert. Das erste Argument enthält den Startwert, das zweite den Startzeitpunkt und das letzte den Endzeitpunkt der Berechnung. Der Wert der Funktion ist eine Approximation für die Lösung der Differentialgleichung zum Zeitpunkt \(t_\Omega\). \(y_j^k\) bezeichnet den Startwert für das Unterintervall \(j\) in der Iteration \(k\). In jeder Iteration wird, ausgehend vom gemeinsamen approximierten Startwert, sowohl \(\mathcal{G}\), als auch \(\mathcal{F}\) ausgeführt. Erlangt wird der Startwert durch die Kombination der Ergebnisse der Löser im zeitlich direkt vorhergehenden Unterintervall.
 \begin{displaymath}
     y_{j+1}^{k+1} = \mathcal{G}\!\!\left(y_j^{k+1}, t_j, t_{j+1}\right) + \mathcal{F}\!\!\left(y_j^k, t_j, t_{j+1}\right) - \mathcal{G}\!\!\left(y_j^k, t_j, t_{j+1}\right)
 \end{displaymath}
-
+Offensichtlich würde \(y_{j+1}^{k+1} = \mathcal{F}\!\!\left(y_j^{k+1}, t_j, t_{j+1}\right)\) zu einem optimalen Startwert führen, jedoch ließen sich hier keine Gewinne durch Parallelisierung realisieren. Die Idee ist aber dieses Ergebnis möglichst genau vorherzusagen. Dazu wird die Auswirkung des neuen Startwerts auf das Ergebnis von \(\mathcal{F}\) durch die Auswirkung auf \(\mathcal{G}\) abgeschätzt. So kann der systematische Fehler von \(\mathcal{G}\) in eingeschänktem Maß isoliert werden. Diese Vorgehensweise kann anhand von Abbildung~\ref{fig:merge} nachvollzogen werden.
 \begin{figure}[ht]
-\centering
-    \begin{tikzpicture}[scale=2.2]
-        \input{../merge}
-    \end{tikzpicture}
-\caption{Entstehung der Korrektur}
+    \centering
+        \begin{tikzpicture}[scale=2.2]
+            \input{../merge}
+        \end{tikzpicture}
+    \caption{Entstehung der Korrektur}
+    \label{fig:merge}
 \end{figure}
+Mit jeder Iteration \(i_k\) entspricht ein weiteres Unterintervall dem Ergebnis von \(\mathcal{F}\) auf dem Gesamtintervall, da sich der ursprüngliche Anfangswert propagiert. Somit müssen die ersten \(k\) Unterintervalle in \(i_k\) nicht mehr berechnet werden. Dort ist er Fixpunkt lokal bereits erreicht. Dadurch ergeben sich auch die Startwerte für eine neue Iteration.
+\begin{displaymath}
+    y_{j+1}^{k+1} = \mathcal{F}\!\!\left(y_{j}^{k}, t_j, t_{j+1}\right) = \mathcal{F}\!\!\left(y_0, t_0, t_{j+1}\right), \quad j = k
+\end{displaymath}
 
 \begin{figure}[ht]
-\centering
-    \input{../sequence}
-\caption{Auslastung und Kommunikation der Threads}
+    \centering
+        \input{../sequence}
+    \caption{Auslastung und Kommunikation der Threads}
 \end{figure}
