@@ -1,6 +1,7 @@
 import numpy as np
 import math as m
 import matplotlib.pylab as plt
+import matplotlib
 from enum import Enum, auto
 import multiprocessing as mp
 import time
@@ -14,6 +15,53 @@ PARA_ACC = 1.0e-60
 kMAX = 2
 PROCS = 9
 
+def latexify(fig_width=None, fig_height=None, columns=1):
+    """Set up matplotlib's RC params for LaTeX plotting.
+    Call this before plotting a figure.
+
+    Parameters
+    ----------
+    fig_width : float, optional, inches
+    fig_height : float,  optional, inches
+    columns : {1, 2}
+    """
+
+    # code adapted from http://www.scipy.org/Cookbook/Matplotlib/LaTeX_Examples
+
+    # Width and max height in inches for IEEE journals taken from
+    # computer.org/cms/Computer.org/Journal%20templates/transactions_art_guide.pdf
+
+    assert(columns in [1,2])
+
+    if fig_width is None:
+        fig_width = 3.39 if columns==1 else 6.9 # width in inches
+
+    if fig_height is None:
+        golden_mean = (m.sqrt(5)-1.0)/2.0    # Aesthetic ratio
+        fig_height = fig_width*golden_mean # height in inches
+
+    MAX_HEIGHT_INCHES = 8.0
+    if fig_height > MAX_HEIGHT_INCHES:
+        print("WARNING: fig_height too large:" + fig_height +
+              "so will reduce to" + MAX_HEIGHT_INCHES + "inches.")
+        fig_height = MAX_HEIGHT_INCHES
+
+    params = {'backend': 'ps',
+              'text.latex.preamble': [r'\usepackage{gensymb}'],
+            #   'axes.labelsize': 8, # fontsize for x and y labels (was 10)
+            #   'axes.titlesize': 8,
+            # #   'text.fontsize': 8, # was 10
+            #   'legend.fontsize': 8, # was 10
+            #   'xtick.labelsize': 8,
+            #   'ytick.labelsize': 8,
+              'text.usetex': True,
+              'figure.figsize': [fig_width,fig_height],
+              'font.family': 'serif'
+    }
+
+    matplotlib.rcParams.update(params)
+
+
 class Method(Enum):
     BEn = auto()
     BEf = auto()
@@ -22,6 +70,7 @@ class Method(Enum):
     FE = auto()
     RK4 = auto()
     PRBDF4 = auto()
+    PRTR = auto()
     #BDF1 = auto()
     #BDF2 = auto()
     #BDF3 = auto()
@@ -52,6 +101,13 @@ def logistisch (t,y):
 
 def logistisch_dy (t,y):
 	return (1 - y) - y
+
+def kondensator (t,y):
+	return -y / 1e-07
+
+def kondensator_dy (t,y):
+	return m.e**(1e7*y)
+
 
 def newton(f, fdx, x0):
     itr = 1
@@ -88,7 +144,7 @@ def bEuler_newton (f, fdy, x0, y0, h, n):
             return None
         r[i] = res[0]
         its += res[1]
-    print("%d iteration over %d steps" % (its, n))
+    # print("%d iteration over %d steps" % (its, n))
     return r
 
 # Backward Euler fixed-point
@@ -115,7 +171,7 @@ def bEuler_fxpt(f, x0, y0, h, n):
             return None
         r[i] = x
         its += itr
-    print("%d iteration over %d steps" % (its, n))
+    # print("%d iteration over %d steps" % (its, n))
     return r
 
 # Trapez with Newton iteration
@@ -138,7 +194,7 @@ def trapez(f, fdy, x0, y0, h, n):
             return None
         r[i] = res[0]
         its += res[1]
-    print("%d iteration over %d steps" % (its, n))
+    # print("%d iteration over %d steps" % (its, n))
     return r
 
 # BDF with Newton iteration and maxord
@@ -222,6 +278,8 @@ def solve (f, fdy, x0, y0, h, n, m, **kwargs):
         return rk4(f, x0, y0, h, n)
     elif m is Method.PRBDF4:
         return parareal_procs(f, fdy, x0, y0, x0 + h*(n-1), int(np.log2(n-1)), Method.BDF4, Method.BDF4, **kwargs)[1]
+    elif m is Method.PRTR:
+        return parareal_procs(f, fdy, x0, y0, x0 + h*(n-1), int(np.log2(n-1)), Method.TR, Method.TR, **kwargs)[1]
 #    if m is Method.BDF1:
 #        return bdf(f, fdy, x0, y0, h, n, 1)
 #    elif m is Method.BDF2:
@@ -288,7 +346,7 @@ class ErrorProcess(mp.Process):
             res = 0
             stepcount = len(vec) - 1
             steps_rem = stepcount
-            
+
             for rems in range(procs,1,-1):
                 steps_rem -= int(steps_rem/rems)
                 off = stepcount - steps_rem
@@ -377,12 +435,49 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
         (idx, r) = q.get()
         plts[idx] = plt.scatter(r.transpose()[0],r.transpose()[1], alpha=0.5)
 
-     
-    plt.xlabel('Max Sprungstelle')
-    plt.ylabel('E')
+
+    plt.xlabel('E')
+    plt.ylabel('Max Sprungstelle')
     plt.tight_layout()
     plt.legend(plts, list(map(lambda i: "kMAX=%i"%i, range(1,procs+1))))
     plt.show()
+
+def iters_for_target_error (f, fdy, x0, y0, xn, exp, target, sol, md, **kwargs):
+    procs = kwargs.get('PROCS', PROCS)
+
+    if sol is None:
+        intervals = 2**(exp+4)
+        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.BDF4)[0::int(2**4)]
+    else:
+        sol = sol(np.linspace(x0, xn, 2**exp+1))
+
+    plt.xscale('log')
+    plt.yscale('log')
+    intervals = 2**exp
+    iters = np.zeros(procs)
+
+    for procs in range(1,procs+1):
+        args = kwargs
+        args['PARA_ACC'] = np.nextafter(0,1)
+        args['PROCS'] = procs
+        error = m.inf
+        args['kMAX'] = 0
+        while error > target:
+            args['kMAX'] += 1
+            apx = parareal(f, fdy, x0, y0, xn, exp,procs, md, md, **args)[1]
+            error = norm(apx-(sol),NORM)
+            print(error)
+        print(str(error) + " " + str(args['kMAX']))
+        iters[procs-1] = args['kMAX']
+
+    print(iters)
+    plt.plot(range(1,procs+1), iters)
+    plt.xlabel('Prozesse')
+    plt.ylabel('Iterationen')
+    plt.tight_layout()
+    # plt.legend(plts, list(map(lambda i: "kMAX=%i"%i, range(1,procs+1))))
+    plt.show()
+
 
 def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
     res = np.zeros([maxIter, maxExp+1])
@@ -404,7 +499,8 @@ def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
 
     while not q.empty():
         (idx, rs) = q.get()
-        res[idx] = rs
+        # print(rs.transpose()[1])
+        res[idx] = rs.transpose()[0]
 
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
     plt.legend(range(1,maxIter+1))
@@ -419,7 +515,7 @@ def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol):
         sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.BDF4)[0::int(2**4)]
     else:
         sol = sol(np.linspace(x0, xn, 2**exp+1))
-    
+
 
     global kMAX
     prevkMAX = kMAX
@@ -455,20 +551,21 @@ def iterStudy(f, fdy, x0, y0, h, n, maxIter):
     plt.legend(range(1,maxIter+1))
     plt.show()
 
-def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
+def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine, **kwargs):
+    kMX = kwargs.get('kMAX', kMAX)
     procs = 2**procExp
     hC = (xn-x0)/procs
     u = solve(f, fdy, x0, y0, hC, procs+1, coarse)
     r = np.zeros((2**exp)+1)
     fIpP = 2**(exp-procExp)
-    for k in range(0,kMAX):
+    for k in range(0,kMX):
         print(u)
         d = np.zeros(procs+1)
         for j in range(0,procs):
             g = solve(f, fdy, x0+(j*hC), u[j], hC, 2, coarse)
             print(x0+(j*hC))
             fn = solve(f, fdy, x0+(j*hC), u[j], hC/fIpP, fIpP+1, fine)
-            if k == kMAX-1:
+            if k == kMX-1:
                 print(fn)
                 r[fIpP*j:fIpP*(j+1)+1] = fn
             d[j+1] = fn[fIpP] - g[1]
@@ -606,11 +703,10 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs):
         #print("done")
     return (y0, np.array(r))
 
-
 def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
     xr = np.linspace(x0, xn, (2**exp)+1)
     #xu = np.linspace(x0, xn, (2**procExp)+1)
-    (u,r) = parareal_procs(f, fdy, x0, y0, xn, exp, procExp, coarse, fine)
+    (u,r) = parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, PROCS = procExp)
     #u = None
     if not (u is None):
         plt.plot(xr, r)
@@ -621,28 +717,37 @@ def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
         plt.show()
 
 
+latexify(5,6)
+
 st = time.time()
 #plot(fn, fn_dy, -20, 10, 20, 0.00001, Method.PRBDF4)
 #plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**22, Method.PRBDF4)
 #print(newton(lambda x: (x-1)*(x+1), lambda x: (x+1)+(x-1), 0.000001))
-#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
+# error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 14, None)
 #error(fn, fn_dy, -20, 10, 20, 20, None)
-#error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, lambda x: 1/(1+(m.e**(-x))))
-#plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, 3, Method.FE, Method.BDF4)
-#plot_pr(fn,fn_dy, -20, 10, 20, 22, 24, Method.BDF4, Method.BDF4)
+# error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, lambda x: 1/(1+(m.e**(-x))))
+# plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, 3, Method.FE, Method.BDF4)
+# plot_pr(fn,fn_dy, -20, 10, 20, 22, 24, Method.BDF4, Method.BDF4)
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.PRBDF4))
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.RK4))
-#iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**10, 2**10+1, 7)
-#iterStudy(fn, fn_dy, -20, 10, 40/2**18, 2**18+1, 12)
-#iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 19, 12, lambda x: 1/(1+(m.e**(-x))))
+# iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**10, 2**10+1, 7)
+# iterStudy(kondensator, kondensator_dy, 0, 1, 7e-7/2**9, 2**9+1, 3)
+# iterStudy(fn, fn_dy, -20, 10, 40/2**18, 2**18+1, 12)
+# iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 15, 12, lambda x: 1/(1+(m.e**(-x))))
 #iterError(fn, fn_dy, -20, 10, 20, 16, 12, None)
 
-#iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 10, 12, lambda x: 1/(1+(m.e**(-x))))
+# iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 10, 12, lambda x: 1/(1+(m.e**(-x))))
 #iterLocalError(fn, fn_dy, -20, 10, 20, 10, 12, None)
 
 
 
-error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
-#plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**10, Method.PRBDF4)
+# error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
+# plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**10, Method.PRBDF4)
+
+# plot(kondensator, kondensator_dy, 0, 1, 7e-7, 7e-7/2**10, Method.PRTR)
+
+
+# iters_for_target_error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, 1*10**-8, lambda x: 1/(1+(m.e**(-x))), Method.TR, PROCS=20)
+
 print("%d seconds elapsed" % (time.time() - st))
 
