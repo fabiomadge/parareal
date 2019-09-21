@@ -307,7 +307,7 @@ def plot (f, fdy, x0, y0, xn, h, m):
         plt.plot(x, y)
         plt.xlabel('t')
         plt.ylabel('y(t)')
-        plt.tight_layout()
+        plt.tight_layout(pad=0)
         plt.show()
 
 def norm(v,n):
@@ -401,7 +401,7 @@ def error (f, fdy, x0, y0, xn, maxExp, sol):
 
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
     plt.legend(Method)
-    plt.tight_layout()
+    plt.tight_layout(pad=0)
     plt.show()
     return None
 
@@ -414,8 +414,11 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     else:
         sol = sol(np.linspace(x0, xn, 2**maxExp+1))
 
-    plt.xscale('log')
-    plt.yscale('log')
+    latexify(5)
+    # fig = plt.figure()
+    ax = plt.gca()
+    # plt.xscale('log')
+    # plt.yscale('log')
     plts = np.empty(procs, object)
     threads = []
     q = mp.Queue()
@@ -430,17 +433,18 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     for t in threads:
         t.join()
 
-
     while not q.empty():
         (idx, r) = q.get()
-        plts[idx] = plt.scatter(r.transpose()[0],r.transpose()[1], alpha=0.5)
+        plts[idx] = ax.scatter(r.transpose()[0],r.transpose()[1], alpha=0.5)
+        ax.set_yscale('log')
+        ax.set_xscale('log')
 
-
-    plt.xlabel('E')
-    plt.ylabel('Max Sprungstelle')
-    plt.tight_layout()
-    plt.legend(plts, list(map(lambda i: "kMAX=%i"%i, range(1,procs+1))))
-    plt.show()
+    ax.set_xlabel('E')
+    ax.set_ylabel('Max Sprungstelle')
+    plt.tight_layout(pad=0)
+    plt.legend(plts, list(map(lambda i: "%i"%i, range(1,procs+1))))
+    plt.savefig('error_disc.pgf')
+    # plt.show()
 
 def iters_for_target_error (f, fdy, x0, y0, xn, exp, target, sol, md, **kwargs):
     procs = kwargs.get('PROCS', PROCS)
@@ -474,7 +478,7 @@ def iters_for_target_error (f, fdy, x0, y0, xn, exp, target, sol, md, **kwargs):
     plt.plot(range(1,procs+1), iters)
     plt.xlabel('Prozesse')
     plt.ylabel('Iterationen')
-    plt.tight_layout()
+    plt.tight_layout(pad=0)
     # plt.legend(plts, list(map(lambda i: "kMAX=%i"%i, range(1,procs+1))))
     plt.show()
 
@@ -502,9 +506,13 @@ def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
         # print(rs.transpose()[1])
         res[idx] = rs.transpose()[0]
 
+    latexify(5,3)
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
+    plt.xlabel('h')
+    plt.ylabel('E(h)')
     plt.legend(range(1,maxIter+1))
-    plt.tight_layout()
+    plt.tight_layout(pad=0)
+    plt.savefig('iter_error.pgf')
     plt.show()
     return None
 
@@ -522,16 +530,19 @@ def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol):
     for m in range(1,maxIter+1):
         kMAX = m
         y[m-1] = np.absolute(sol - solve(f, fdy, x0, y0, (xn-x0)/2**exp, 2**exp+1, Method.PRBDF4))
+        # y[m-1] = np.absolute(sol - solve(f, fdy, x0, y0, (xn-x0)/2**exp, 2**exp+1, Method.PRBDF4))/np.absolute(sol)
 
     kMAX = prevkMAX
     x = np.linspace(x0, xn, 2**exp+1)
 
+    latexify(5,3.1)
     plt.plot(x, np.transpose(y))
     plt.yscale('log')
     plt.xlabel('t')
-    plt.ylabel('y(t)')
-    plt.tight_layout()
+    plt.ylabel('E(t)')
+    plt.tight_layout(pad=0)
     plt.legend(range(1,maxIter+1))
+    plt.savefig('iter_error_local.pgf')
     plt.show()
 
 def iterStudy(f, fdy, x0, y0, h, n, maxIter):
@@ -544,11 +555,13 @@ def iterStudy(f, fdy, x0, y0, h, n, maxIter):
     kMAX = prevkMAX
     x = np.linspace(x0, x0 + (n-1) * h, n)
 
+    latexify(5,3)
     plt.plot(x, np.transpose(y))
     plt.xlabel('t')
     plt.ylabel('y(t)')
-    plt.tight_layout()
+    plt.tight_layout(pad=0)
     plt.legend(range(1,maxIter+1))
+    plt.savefig('iter_study.pgf')
     plt.show()
 
 def parareal(f, fdy, x0, y0, xn, exp, procExp, coarse, fine, **kwargs):
@@ -713,11 +726,11 @@ def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
         #plt.plot(xu, u)
         plt.xlabel('t')
         plt.ylabel('y(t)')
-        plt.tight_layout()
+        plt.tight_layout(pad=0)
         plt.show()
 
 
-latexify(5,6)
+# latexify(5,3.1)
 
 st = time.time()
 #plot(fn, fn_dy, -20, 10, 20, 0.00001, Method.PRBDF4)
@@ -730,10 +743,12 @@ st = time.time()
 # plot_pr(fn,fn_dy, -20, 10, 20, 22, 24, Method.BDF4, Method.BDF4)
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.PRBDF4))
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.RK4))
-# iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**10, 2**10+1, 7)
+# iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**10, 2**10+1, 4)
 # iterStudy(kondensator, kondensator_dy, 0, 1, 7e-7/2**9, 2**9+1, 3)
 # iterStudy(fn, fn_dy, -20, 10, 40/2**18, 2**18+1, 12)
-# iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 15, 12, lambda x: 1/(1+(m.e**(-x))))
+# iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 22, 12, None)
+# iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 23, 9, lambda x: 1/(1+(m.e**(-x))))
+
 #iterError(fn, fn_dy, -20, 10, 20, 16, 12, None)
 
 # iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 10, 12, lambda x: 1/(1+(m.e**(-x))))
@@ -741,7 +756,7 @@ st = time.time()
 
 
 
-# error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
+error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 22, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
 # plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**10, Method.PRBDF4)
 
 # plot(kondensator, kondensator_dy, 0, 1, 7e-7, 7e-7/2**10, Method.PRTR)

@@ -27,12 +27,50 @@ Das resultierende Verfahren wird als \(\mathcal{P}\!\left(y, t_{A}, t_{\Omega},K
     \caption{Auslastung und Kommunikation der Threads}
     \label{fig:sequence}
 \end{figure}
-Beide Achsen bilden eine Zeit ab. Auf der x-Achse finden sich die Prozesse, also die Unterintervalle; beginnend bei \(t_0\) und aufsteigend angeordnet. Im der Gesamtbetrachtung ergibt sich die Simulationszeit. Die y-Achse zeigt die Realzeit, also die Laufzeit des Programms. Innerhalb der Prozesse werden Paare roter(\(\mathcal{G}\)) und grüner(\(\mathcal{F}\)) Rechtecke wiederholt. Sie unterschieden sich in der Ausdehnung auf der y-Achse, nachdem sie sich in der Laufzeit unterscheiden sollen. Das Paar bildet zusammen eine Iteration. Die Anzahl der Iteration eines Prozesses steigt mit seinem Index, weil sich die exakte Lösungs mit jeder Iteration um ein Unterintervall fortsetzt und somit auch der Anfangswert konstant bleibt. Der Beginn der Berechnungen ist bei den Prozessen jeweils um die Rechenzeit für \(\mathcal{G}\) versetzt, nachdem das Ergebnis des vorherigen Unterintervalls Aufwirkungen auf den Startwert hat. Die erforderliche Kommunikation zwischen den Prozessen wird durch die Pfeile gezeigt. Während der reguläre Pfeil das weitergeben eines direkten Ergebnisses von einem der Löser bedeutet, werden bei dem anderen Pfeil vorher gemäß Gleichung~\ref{eq:1} drei Ergebnisse zusammengeführt. Nachdem ein Prozess eine Iteration beendet hat, blockiert er, bis er einen neuen Startwert vom vorherigen bekommt. In der Abbildung ist leicht ersichtlich, dass es nicht sinnvoll ist alle möglichen Iterationen auch durchzuführen. Dies gilt sowohl Laufzeit \(\mathrm{L}(f)\), als auch für die Prozessorzeit. Die Prozessorzeit ist, verglichen mit streng sequenzieller Ausführung bereits nach einer Iteration größer, weil nicht nur \(\mathcal{F}\), sondern auch \(\mathcal{G}\) auf dem Gesamtintervall evaluiert werden muss. Eine optimale Prozessorzeit ist jedoch nicht das Ziel des Algorithmus, sondern eine Optimierung der Laufzeit. Diese ist nach \(P\) Iterationen aber auch schlechter
+Beide Achsen bilden eine Zeit ab. Auf der x-Achse finden sich die Prozesse, also die Unterintervalle; beginnend bei \(t_0\) und aufsteigend angeordnet. Im der Gesamtbetrachtung ergibt sich die Simulationszeit. Die y-Achse zeigt die Realzeit, also die Laufzeit des Programms. Innerhalb der Prozesse werden Paare roter(\(\mathcal{G}\)) und grüner(\(\mathcal{F}\)) Rechtecke wiederholt. Sie unterschieden sich in der Ausdehnung auf der y-Achse, nachdem sie sich in der Laufzeit unterscheiden sollen. Das Paar bildet zusammen eine Iteration. Die Anzahl der Iteration eines Prozesses steigt mit seinem Index, weil sich die exakte Lösungs mit jeder Iteration um ein Unterintervall fortsetzt und somit auch der Anfangswert konstant bleibt. Der Beginn der Berechnungen ist bei den Prozessen jeweils um die Rechenzeit für \(\mathcal{G}\) versetzt, nachdem das Ergebnis des vorherigen Unterintervalls Aufwirkungen auf den Startwert hat. Die erforderliche Kommunikation zwischen den Prozessen wird durch die Pfeile gezeigt. Während der reguläre Pfeil das weitergeben eines direkten Ergebnisses von einem der Löser bedeutet, werden bei dem anderen Pfeil vorher gemäß Gleichung~\ref{eq:1} drei Ergebnisse zusammengeführt. Nachdem ein Prozess eine Iteration beendet hat, blockiert er, bis er einen neuen Startwert vom vorherigen bekommt. Aus der Abbildung ist leicht ersichtlich, dass es nicht sinnvoll ist alle möglichen Iterationen auch durchzuführen. Dies gilt sowohl Laufzeit \(\mathrm{L}(f)\), als auch für die Prozessorzeit. Die Prozessorzeit ist, verglichen mit streng sequenzieller Ausführung bereits nach einer Iteration größer, weil nicht nur \(\mathcal{F}\), sondern auch \(\mathcal{G}\) auf dem Gesamtintervall evaluiert werden muss. Eine optimale Prozessorzeit ist jedoch nicht das Ziel des Algorithmus, sondern eine Optimierung der Laufzeit. Diese ist nach \(P\) Iterationen aber auch schlechter
 \begin{align*}
     \mathrm{L}\!\left(\mathcal{F}\!\!\left(y_0, t_0, T\right)\right)
     &\approx P \cdot \mathrm{L}\!\left(\mathcal{F}\!\!\left(y_i, t_i, t_{i+1}\right)\right)\\
     \mathrm{L}\!\left(\mathcal{P}\!\!\left(y_0, t_0, T, K, P\right)\right)
     &\approx K \cdot \mathrm{L}\!\left(\mathcal{F}\!\!\left(y_i, t_i, t_{i+1}\right)\right) + (P-1) (K-1) \mathrm{L}\!\left(\mathcal{G}\!\!\left(y_i, t_i, t_{i+1}\right)\right).
 \end{align*}
+Dadurch wird klar, dass der Algorithmus nur dann sinnvoll eingesetzt werden kann, wenn \(K \ll P\). Gleichzeitig gilt aber auch, dass in diesem Fall das Ergebnis ein anderes ist.
+\subsection*{Experimente}
+Um das tatsächliche Verhalten des Algorithmus zu untersuchen, haben wir den Algorithmus in Python implementiert. Für die meisten Analysen wird eine Differentialgleichung deren Lösung durch die logistische Funktion beschrieben wird. Sie kann als Wachstumsmodell unter Berücksichtigung des Ressourcenverbrauchs verwendet werden
+\begin{displaymath}
+    y'(t) = k \cdot y(t) \cdot (L - y(t)).
+\end{displaymath}
+Diese Gleichung lässt jedoch eine Schar von Lösungen zu, welche jedoch symbolisch zu berechnen ist. Mit der Randbedingung \(y(0)= \frac{L}{2}\) ist nur noch eine Lösung möglich
+\begin{displaymath}
+    y(t) = \frac{L}{1+e^{-k L t}}.
+\end{displaymath}
+Verschiedene numerische Lösungen der Gleichung finden sich oben in Abbildung~\ref{fig:sequence}. Alle sind, unter der Nutzung von 12 Prozessen, mit Parareal gerechnet und variieren die Anzahl der Iterationen. Die erste Beobachtung sind die Sprungsstellen an den Unterintervallgrenzen. Mit jeder Iteration nähert sich das Ergebnis in allen Unterintervallen stärker an das exakte Ergebnis an. Der Untere Graph zeigt einige Lösungen für den belasteten Kondensator aus Abbildung~\ref{fig:cap}.
+\begin{figure}[ht]
+    \centering
+        \input{../iter_study_logistic.pgf}
+        \input{../iter_study_cap.pgf}
+    \caption{Lösung der logistischen Gleichung mit \(L = k = 1\) (oben) und den belasteten Kondensator (unten) nach aufeinanderfolgenden Iterationen.}
+    \label{fig:iters_log}
+\end{figure}
 
-Abbruch???
+\begin{figure}[ht]
+    \centering
+        \input{../iter_error_local_abs.pgf}
+        \input{../iter_error_local_rel.pgf}
+    \caption{Lokaler Fehler, absolut (oben) und relativ (unten), der Parareal Lösungen der logistischen Gleichung.}
+    \label{fig:iter_error_local}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+        \input{../iter_error.pgf}
+    \caption{Globaler Fehler bei steigender Präzision von \(\mathcal{F}\).}
+    \label{fig:iter_error}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+        \input{../error_disc.pgf}
+    \caption{Feste Itersationszahl mit verschieden Genauigkeiten; Vergleich von globalem Fehler und größter Sprungstelle}
+    \label{fig:iter_error}
+\end{figure}
