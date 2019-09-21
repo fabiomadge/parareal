@@ -297,7 +297,7 @@ def solve (f, fdy, x0, y0, h, n, m, **kwargs):
         exit(0)
 
 def isParareal(m):
-    return m is Method.PRBDF4
+    return m is Method.PRBDF4 or m is Method.PRTR
 
 def plot (f, fdy, x0, y0, xn, h, m):
     y = solve(f, fdy, x0, y0, h, int((xn-x0)/h)+1, m)
@@ -426,7 +426,7 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     for kMX in range(1,procs+1):
         args = kwargs
         args['kMAX'] = kMX
-        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, Method.PRBDF4, kMX-1, q, **args)
+        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, Method.PRTR, kMX-1, q, **args)
         t.start()
         threads.append(t)
 
@@ -444,7 +444,7 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     plt.tight_layout(pad=0)
     plt.legend(plts, list(map(lambda i: "%i"%i, range(1,procs+1))))
     plt.savefig('error_disc.pgf')
-    # plt.show()
+    plt.show()
 
 def iters_for_target_error (f, fdy, x0, y0, xn, exp, target, sol, md, **kwargs):
     procs = kwargs.get('PROCS', PROCS)
@@ -494,7 +494,7 @@ def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
     threads = []
     q = mp.Queue()
     for m in range(1,maxIter+1):
-        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, Method.PRBDF4, m-1, q, kMAX = m, PARA_ACC = np.nextafter(0,1))
+        t = ErrorProcess(f, fdy, x0, y0, xn, maxExp, sol, Method.PRTR, m-1, q, kMAX = m, PARA_ACC = np.nextafter(0,1))
         t.start()
         threads.append(t)
 
@@ -516,7 +516,7 @@ def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
     plt.show()
     return None
 
-def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol):
+def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol, **kwargs):
     y = np.zeros([maxIter, 2**exp+1])
     if sol is None:
         intervals = 2**(exp+4)
@@ -525,14 +525,17 @@ def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol):
         sol = sol(np.linspace(x0, xn, 2**exp+1))
 
 
-    global kMAX
-    prevkMAX = kMAX
+    # global kMAX
+    # prevkMAX = kMAX
     for m in range(1,maxIter+1):
         kMAX = m
-        y[m-1] = np.absolute(sol - solve(f, fdy, x0, y0, (xn-x0)/2**exp, 2**exp+1, Method.PRBDF4))
-        # y[m-1] = np.absolute(sol - solve(f, fdy, x0, y0, (xn-x0)/2**exp, 2**exp+1, Method.PRBDF4))/np.absolute(sol)
+        args = kwargs
+        args["PARA_ACC"] = np.nextafter(0,1)
+        args["kMAX"] = m
+        # y[m-1] = np.absolute(sol - solve(f, fdy, x0, y0, (xn-x0)/2**exp, 2**exp+1, Method.PRTR, **args))
+        y[m-1] = np.absolute(sol - solve(f, fdy, x0, y0, (xn-x0)/2**exp, 2**exp+1, Method.PRTR, **args))/np.absolute(sol)
 
-    kMAX = prevkMAX
+    # kMAX = prevkMAX
     x = np.linspace(x0, xn, 2**exp+1)
 
     latexify(5,3.1)
@@ -545,13 +548,13 @@ def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol):
     plt.savefig('iter_error_local.pgf')
     plt.show()
 
-def iterStudy(f, fdy, x0, y0, h, n, maxIter):
+def iterStudy(f, fdy, x0, y0, h, n, maxIter, **kwargs):
     global kMAX
     prevkMAX = kMAX
     y = np.zeros([maxIter, n])
     for m in range(1,maxIter+1):
         kMAX = m
-        y[m-1] = solve(f, fdy, x0, y0, h, n, Method.PRBDF4)
+        y[m-1] = solve(f, fdy, x0, y0, h, n, Method.PRBDF4, **kwargs)
     kMAX = prevkMAX
     x = np.linspace(x0, x0 + (n-1) * h, n)
 
@@ -627,7 +630,7 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs):
                     stat = PrStat.ChainOK
                 if v+1 == k:
                     v = k
-            #print(idx*' ' + str(k))
+            # print(idx*' ' + str(k))
             if not v == k:
                 print("\033[1;4;45mversion mismatch\033[0m")
                 print(v)
@@ -659,8 +662,8 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs):
                     nxt = g[2**cSteps] + prevF - prevC
                 corr = abs(ypp - nxt) / abs(nxt)
                 stat = PrStat.ChainOK if stat is PrStat.ChainOK and corr <= PR_ACC else PrStat.ChainBroken
-                #print(corr)
-                #print(idx*' ' + ("\033[0;31m" if corr >= PR_ACC else "\033[0;32m") + str(k) + "\033[0m" + " (" + str(corr) + ")")
+                # print(corr)
+                # print(idx*' ' + ("\033[0;31m" if corr >= PR_ACC else "\033[0;32m") + str(k) + "\033[0m" + " (" + str(corr) + ")")
                 prevC = g[2**cSteps]
                 ypp = nxt
                 #print(nxt)
@@ -682,7 +685,7 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs):
                         print("no fine result available")
                     else:
                         r[off:off+n+1] = fn
-                    #print(' ' * idx + "fine result submitted")
+                    # print(' ' * idx + "fine result submitted")
                 #print(y)
                 #ynx.send((k,y))
                 #sentY = y
@@ -690,7 +693,7 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs):
                 #print(idx*' ' + "idle " + str(stat))
                 if stat is PrStat.Terminate or k == kMX:
                     r[off:off+n+1] = fn
-                    #print(' ' * idx + "fine result submitted")
+                    # print(' ' * idx + "fine result submitted")
                 try:
                     ynx.send((k,fn[-1],stat))
                     #print(' ' * idx + "idle message sent")
@@ -716,12 +719,15 @@ def parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs):
         #print("done")
     return (y0, np.array(r))
 
-def plot_pr (f, fdy, x0, y0, xn, exp, procExp, coarse, fine):
+def plot_pr (f, fdy, x0, y0, xn, exp, procs, coarse, fine, **kwargs):
     xr = np.linspace(x0, xn, (2**exp)+1)
     #xu = np.linspace(x0, xn, (2**procExp)+1)
-    (u,r) = parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, PROCS = procExp)
+    kwargs['PROCS'] = procs
+    (u,r) = parareal_procs(f, fdy, x0, y0, xn, exp, coarse, fine, **kwargs)
     #u = None
     if not (u is None):
+        print(xr)
+        print(r)
         plt.plot(xr, r)
         #plt.plot(xu, u)
         plt.xlabel('t')
@@ -740,10 +746,11 @@ st = time.time()
 #error(fn, fn_dy, -20, 10, 20, 20, None)
 # error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, lambda x: 1/(1+(m.e**(-x))))
 # plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 20, 3, Method.FE, Method.BDF4)
+# plot_pr(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 7, 9, Method.BDF4, Method.BDF4, kMAX=10)
 # plot_pr(fn,fn_dy, -20, 10, 20, 22, 24, Method.BDF4, Method.BDF4)
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.PRBDF4))
 #print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.RK4))
-# iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**10, 2**10+1, 4)
+# iterStudy(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**16, 2**16+1, 4, PROCS=12)
 # iterStudy(kondensator, kondensator_dy, 0, 1, 7e-7/2**9, 2**9+1, 3)
 # iterStudy(fn, fn_dy, -20, 10, 40/2**18, 2**18+1, 12)
 # iterError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 22, 12, None)
@@ -751,18 +758,20 @@ st = time.time()
 
 #iterError(fn, fn_dy, -20, 10, 20, 16, 12, None)
 
-# iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 10, 12, lambda x: 1/(1+(m.e**(-x))))
+# iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, 6, lambda x: 1/(1+(m.e**(-x))), PROCS=12)
 #iterLocalError(fn, fn_dy, -20, 10, 20, 10, 12, None)
 
 
 
-error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 22, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
+error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
 # plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**10, Method.PRBDF4)
 
 # plot(kondensator, kondensator_dy, 0, 1, 7e-7, 7e-7/2**10, Method.PRTR)
 
 
 # iters_for_target_error(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, 1*10**-8, lambda x: 1/(1+(m.e**(-x))), Method.TR, PROCS=20)
+
+# print(solve(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 12/2**7, 2**7+1, Method.PRBDF4, kMAX=9, PROCS=9))
 
 print("%d seconds elapsed" % (time.time() - st))
 
