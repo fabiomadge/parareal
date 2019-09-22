@@ -409,8 +409,8 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     procs = kwargs.get('PROCS', PROCS)
 
     if sol is None:
-        intervals = 2**(maxExp+4)
-        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.BDF4)[0::int(2**4)]
+        intervals = 2**(maxExp+0)
+        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.TR)[0::int(2**0)]
     else:
         sol = sol(np.linspace(x0, xn, 2**maxExp+1))
 
@@ -419,7 +419,7 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     ax = plt.gca()
     # plt.xscale('log')
     # plt.yscale('log')
-    plts = np.empty(procs, object)
+    plts = np.empty(maxExp, object)
     threads = []
     q = mp.Queue()
 
@@ -433,16 +433,24 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
     for t in threads:
         t.join()
 
+    res = np.empty(procs, object)
     while not q.empty():
         (idx, r) = q.get()
-        plts[idx] = ax.scatter(r.transpose()[0],r.transpose()[1], alpha=0.5)
+        res[idx] = r
+
+    for i in range(maxExp):
+        r = np.zeros((procs,2))
+        for j in range(procs):
+            r[j] = res[j][i]
+        print(r)
+        if i == maxExp-5 or i == maxExp-3  or i == maxExp-1: plts[i] = ax.scatter(r.transpose()[0],r.transpose()[1], alpha=0.5)
         ax.set_yscale('log')
         ax.set_xscale('log')
 
     ax.set_xlabel('E')
     ax.set_ylabel('Max Sprungstelle')
     plt.tight_layout(pad=0)
-    plt.legend(plts, list(map(lambda i: "%i"%i, range(1,procs+1))))
+    plt.legend(plts, list(map(lambda i: "%i"%2**i, range(1,maxExp+1))))
     plt.savefig('error_disc.pgf')
     plt.show()
 
@@ -508,8 +516,8 @@ def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
 
     latexify(5,3)
     plt.loglog(2**np.linspace(0,maxExp,maxExp+1), np.transpose(res))
-    plt.xlabel('h')
-    plt.ylabel('E(h)')
+    plt.xlabel('(T-t_0)/h')
+    plt.ylabel('E')
     plt.legend(range(1,maxIter+1))
     plt.tight_layout(pad=0)
     plt.savefig('iter_error.pgf')
@@ -519,8 +527,8 @@ def iterError(f, fdy, x0, y0, xn, maxExp, maxIter, sol):
 def iterLocalError(f, fdy, x0, y0, xn, exp, maxIter, sol, **kwargs):
     y = np.zeros([maxIter, 2**exp+1])
     if sol is None:
-        intervals = 2**(exp+4)
-        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.BDF4)[0::int(2**4)]
+        intervals = 2**(exp+0)
+        sol = solve(f, fdy, x0, y0, (xn-x0)/intervals, intervals+1, Method.TR)[0::int(2**0)]
     else:
         sol = sol(np.linspace(x0, xn, 2**exp+1))
 
@@ -758,12 +766,12 @@ st = time.time()
 
 #iterError(fn, fn_dy, -20, 10, 20, 16, 12, None)
 
-# iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, 6, lambda x: 1/(1+(m.e**(-x))), PROCS=12)
+# iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, 12, None, PROCS=12)
 #iterLocalError(fn, fn_dy, -20, 10, 20, 10, 12, None)
 
 
 
-error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
+error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
 # plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**10, Method.PRBDF4)
 
 # plot(kondensator, kondensator_dy, 0, 1, 7e-7, 7e-7/2**10, Method.PRTR)
