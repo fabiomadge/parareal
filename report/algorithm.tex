@@ -44,7 +44,7 @@ Diese Gleichung lässt jedoch eine Schar von Lösungen zu, welche jedoch symboli
 \begin{displaymath}
     y(t) = \frac{L}{1+e^{-k L t}}.
 \end{displaymath}
-Verschiedene numerische Lösungen der Gleichung finden sich oben in Abbildung~\ref{fig:sequence}. Alle sind, unter der Nutzung von 12 Prozessen, mit Parareal gerechnet und variieren die Anzahl der Iterationen. Die erste Beobachtung sind die Sprungsstellen an den Unterintervallgrenzen. Mit jeder Iteration nähert sich das Ergebnis in allen Unterintervallen stärker an das exakte Ergebnis an. Der Untere Graph zeigt einige Lösungen für den belasteten Kondensator aus Abbildung~\ref{fig:cap}.
+Verschiedene numerische Lösungen der Gleichung finden sich oben in Abbildung~\ref{fig:sequence}. Alle sind, unter der Nutzung von 12 Prozessen, mit Parareal gerechnet und unterscheiden sich in der Anzahl der Iterationen. Auffällig sind die Sprungsstellen an den Unterintervallgrenzen und die Tatsache, dass sich mit jeder Iteration das Ergebnis in allen Unterintervallen stärker an das exakte Ergebnis annähert. Der untere Graph zeigt das Gleiche, aber löst die Gleichung für den belasteten Kondensator aus Abbildung~\ref{fig:cap}.
 \begin{figure}[ht]
     \centering
         \input{../iter_study_logistic.pgf}
@@ -52,7 +52,7 @@ Verschiedene numerische Lösungen der Gleichung finden sich oben in Abbildung~\r
     \caption{Lösung der logistischen Gleichung mit \(L = k = 1\) (oben) und den belasteten Kondensator (unten) nach aufeinanderfolgenden Iterationen.}
     \label{fig:iters_log}
 \end{figure}
-
+Der folgendende Teil beschränkt sich auf die Betrachtung der logistischen Gleichung. Um die Entwicklung des Fehlers besser beobachten zu können, kann Abbildung~\ref{fig:iter_error_local} herangezogen werden. Durch die logarithmische Skalierung des lokalen Fehlers werden nun auch verbesserungen in der vierten und fünften Iteration sichtbar. Die Sprungsstellen sind auch hier nach den früheren Iterationen gut sichtbar, verschwinden aber mit der sechsten Iteration, die im Graphen bereits nicht mehr von der letzten Iteration zu unterscheiden ist. Der wird in Bezug auf die exakte Lösung berechnet und wird der Vollständigkeit halber sowohl absolut als auch relativ gezeigt.
 \begin{figure}[ht]
     \centering
         \input{../iter_error_local_abs.pgf}
@@ -60,7 +60,15 @@ Verschiedene numerische Lösungen der Gleichung finden sich oben in Abbildung~\r
     \caption{Lokaler Fehler, absolut (oben) und relativ (unten), der Parareal Lösungen der logistischen Gleichung.}
     \label{fig:iter_error_local}
 \end{figure}
+Typischerweise liegt die exakte Lösung jedoch nicht vor, wodurch der Vergleich mit einer numerischen Lösung relevant ist. Für Abbildung~\ref{fig:iter_error_local_num} wurde das sequenzielle Ergebnis eines Lösers mit der Genauigkeit von \(\mathcal{F}\) als Vergleich bemüht. Dieser ist natürlich identisch mit der zwölften Iteration. Ab der Zehnten Iteration ist der Fehler nicht mehr darstellbar.\\
+\begin{figure}[ht]
+    \centering
+        \input{../iter_error_local_rel_num.pgf}
+    \caption{Lokaler relativ Fehler der Parareal Lösungen der logistischen Gleichung mit der numerischen Lösung als Vergleichswert.}
+    \label{fig:iter_error_local_num}
+\end{figure}
 
+Bisher hat die Genauigkeit der zugrunde liegenden Diskretisierungsverfahren in den Experimenten keine Rolle gespielt. Untersucht wird nun wie sich eine größere Präzision von \(\mathcal{F}\), bei unverändertem \(\mathcal{G}\), auf dem Gesamtfehler auswirkt. Zur Berechnung wird die 2-Norm verwendet. Verschiedene Iterationszahlen werden in Abbildung~\ref{fig:iter_error} berücksichtigt. Die einzelnen Funktionen haben jeweils zwei Phasen. Eine der starken Verbesserung, wo die Erhöhung der Genauigkeit mit einer starken Verbesserung des Fehlers einhergeht. In der zweiten Phase wird dieser Zusammenhang abgeschwächt. Mit jeder zusätzlichen Iteration verschiebt sich der Übergang in Richtung der größeren Genauigkeit.
 \begin{figure}[ht]
     \centering
         \input{../iter_error.pgf}
@@ -68,9 +76,21 @@ Verschiedene numerische Lösungen der Gleichung finden sich oben in Abbildung~\r
     \label{fig:iter_error}
 \end{figure}
 
+\subsubsection*{Automatischer Abbruch}
+Der erwartbare Wunsch des Nutzers eines Lösers ist es, die Parallelisierung durch eine boolesche Option zu aktivieren. Dies ist jedoch nicht ohne weiteres möglich, nachdem vor der Ausführung des Algorithmus einige Entscheidungen getroffen werden müssen. Dazu zählen die Präzision von \(\mathcal{G}\), die Anzahl der Prozesse und die Anzahl der Iterationen. Vor allem eine feste Anzahl von Iterationen vorzugeben, scheint unpraktikabel. Dies macht ein dynamisches Abbruchkriterium notwendig, welches während der Ausführung den richtigen Zeitpunkt füt den Abbruch findet. Der Vergleich der Abbildungen~\ref{fig:iters_log}, \ref{fig:iter_error_local} und \ref{fig:iter_error_local_num} suggeriert ein erstes Problem. Alle drei lassen verschiedene Iterationsanzahlen als sinnvoll erscheinen. Während der Vergleich mit der exakten Lösung impraktikabel ist, stellt es Offensichtlich das Optimum dar. So liegen die Ergebnisse ab der siebten Iteration zwar näher an der numerischen Lösung, durch den ihr innewohnenden Fehler ist das Ergebnis dadurch effektiv aber nicht besser. Unglücklicherweise liegen jedoch beide Lösungen zur Laufzeit nicht vor.\\
+
+Verfügbar sind jedoch die Größe der Korrekturen beim Zusammenführen der Ergebnisse(Abbildung~\ref{fig:error_corr}), und die Größe der Sprungsstellen am Ende einer Iteration(Abbildung~\ref{fig:error_disc}). Zu sehen sind für einige Genauigkeiten jeweils wie sich die Beobachtete Größe zum globalen Fehler verhält. Die Korrekturen entwickeln sich ungeachtet des Erreichen des Fehlerplateaus konstant weiter und sind folglich kein guter Indikator. Ganz anderes verhält es sich jedoch mit den Sprungsstellen sie scheinen sich ähnlich schnell wie die Fehler zu stabilisieren, dadurch erscheinen sie ein gutes Abbruchkriterium darzustellen.
+
+\begin{figure}[ht]
+    \centering
+        \input{../error_corr.pgf}
+    \caption{Feste Anzahl der Schritte mit verschieden Iterationszahlen; Vergleich von globalem Fehler und größter Korrektur}
+    \label{fig:error_corr}
+\end{figure}
 \begin{figure}[ht]
     \centering
         \input{../error_disc.pgf}
-    \caption{Feste Itersationszahl mit verschieden Genauigkeiten; Vergleich von globalem Fehler und größter Sprungstelle}
-    \label{fig:iter_error}
+    \caption{Feste Anzahl der Schritte mit verschieden Iterationszahlen; Vergleich von globalem Fehler und größter Sprungstelle}
+    \label{fig:error_disc}
 \end{figure}
+

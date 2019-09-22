@@ -443,6 +443,9 @@ def error_disc (f, fdy, x0, y0, xn, maxExp, sol, **kwargs):
         for j in range(procs):
             r[j] = res[j][i]
         print(r)
+        # print(r.transpose()[1][:1])
+        print([abs(j-i) for i, j in zip(r.transpose()[0][:-1], r.transpose()[0][1:])])
+        print([abs(j-i) for i, j in zip(r.transpose()[1][:-1], r.transpose()[1][1:])])
         if i == maxExp-5 or i == maxExp-3  or i == maxExp-1: plts[i] = ax.scatter(r.transpose()[0],r.transpose()[1], alpha=0.5)
         ax.set_yscale('log')
         ax.set_xscale('log')
