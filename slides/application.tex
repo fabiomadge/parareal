@@ -5,7 +5,7 @@
 \begin{itemize}[<+->]
     \item Circuit simulator written in \texttt{C++}
     \item Comes with BE and TR integrators
-    \item Limited but sufficent collection of devices
+    \item Limited but sufficient collection of devices
     \item .OP and .TRAN
 \end{itemize}
 \end{frame}
@@ -16,54 +16,29 @@ how does it work?
 
 \subsection{Results}
 
-\begin{frame}[fragile]
-\begin{lstlisting}[basicstyle=\small, breaklines=true]
-* simple inverter test with PMOS and NMOS
-
-.param VSS=1.5
-
-*input simulus
-Rin  in 0 1E+9
-Vin  in 0 PULSE(0 'VSS' 2n 2n 2n 25n 50n)
-Rmos in gmos 10
-
-VSS  vss 0    DC=VSS
-VDD  0 mygnd  DC=0
-
-* The inverter with two MOSFETs
-M1 outV     gmos vss   vss     mosfetl0 n=0
-M2 mygnd    gmos outV  mygnd   mosfetl0 n=1
-
-* a RC coupled to the output to model load on the output
-Rout outV outM 100
-Cout 0    outM 1p
-
-.ptran 10 1p 200n
-\end{lstlisting}
-
+\begin{frame}
+    \begin{figure}[ht]
+        \centering
+        \scalebox{0.8}{\input{solution_k0_entladen.pgf}}
+        \caption{Result of the simulation after the first iteration and the exact solution.}
+        \label{fig:iters_log}
+    \end{figure}
 \end{frame}
 
-\begin{frame}[fragile]
-\begin{center}
-\begin{gnuplot}[terminal=epslatex, terminaloptions=color, scale = 0.8]
-plot "plots/sample.gp" u 1:2 title "in", "plots/sample.gp" using 1:3 title "gmos", "plots/sample.gp" using 1:4 title "outv", "plots/sample.gp" using 1:5 title "outm", "plots/sample.gp" using 1:6 title "vin:I", "plots/sample.gp" using 1:7 title "vss:I", "plots/sample.gp" using 1:8 title "vdd:I"
-\end{gnuplot}
-\end{center}
+\begin{frame}
+    \begin{figure}[ht]
+        \centering
+        \scalebox{0.8}{\input{error_local_entladen.pgf}}
+        \caption{Local absolute error of the simulation results.}
+        \label{fig:iters_log}
+    \end{figure}
 \end{frame}
 
-\begin{frame}[fragile]
-\begin{center}
-\begin{gnuplot}[terminal=epslatex, terminaloptions=color, scale = 0.8]
-plot "plots/kmax1.gp" u 1:2 title "in", "plots/kmax1.gp" using 1:3 title "gmos", "plots/kmax1.gp" using 1:4 title "outv", "plots/kmax1.gp" using 1:5 title "outm", "plots/kmax1.gp" using 1:6 title "vin:I", "plots/kmax1.gp" using 1:7 title "vss:I", "plots/kmax1.gp" using 1:8 title "vdd:I"
-\end{gnuplot}
-\end{center}
+\begin{frame}
+    \begin{figure}[ht]
+        \centering
+        \scalebox{0.8}{\input{error_global_entladen.pgf}}
+        \caption{Global error of the simulation results.}
+        \label{fig:iters_log}
+    \end{figure}
 \end{frame}
-
-\begin{frame}[fragile]
-\begin{center}
-\begin{gnuplot}[terminal=epslatex, terminaloptions=color, scale = 0.8]
-plot "plots/kmax2.gp" u 1:2 title "in", "plots/kmax2.gp" using 1:3 title "gmos", "plots/kmax2.gp" using 1:4 title "outv", "plots/kmax2.gp" using 1:5 title "outm", "plots/kmax2.gp" using 1:6 title "vin:I", "plots/kmax2.gp" using 1:7 title "vss:I", "plots/kmax2.gp" using 1:8 title "vdd:I"
-\end{gnuplot}
-\end{center}
-\end{frame}
-

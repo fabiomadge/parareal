@@ -770,11 +770,12 @@ st = time.time()
 #iterError(fn, fn_dy, -20, 10, 20, 16, 12, None)
 
 # iterLocalError(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 16, 12, None, PROCS=12)
+iterLocalError(kondensator, kondensator_dy, 0, 1, 7e-7, 16, 12, None, PROCS=12)
 #iterLocalError(fn, fn_dy, -20, 10, 20, 10, 12, None)
 
 
 
-error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
+# error_disc(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 18, lambda x: 1/(1+(m.e**(-x))), PROCS=10)
 # plot(logistisch, logistisch_dy, -6, 1/(1+m.e**6), 6, 12/2**10, Method.PRBDF4)
 
 # plot(kondensator, kondensator_dy, 0, 1, 7e-7, 7e-7/2**10, Method.PRTR)

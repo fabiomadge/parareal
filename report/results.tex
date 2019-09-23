@@ -1,1 +1,26 @@
-Es hat sehr gut funktioniert.
+Um das tatsächliche Verhalten der Implementierung zu untersuchen, werden zwei Schaltungen simuliert. Der belastete Kondensator aus Abbildung~\ref{fig:cap} ist das einfache Beispiel. Das komplexere Beispiel ist ein Invertierer. Dabei handelt es sich sich um eine digitale Schaltung, welche das Eingangssignal negiert. Die konkrete Schaltung besteht aus neun Elementen, wobei zwei dynamisch sind. Abbildung~\ref{fig:sol_sim} zeigt jeweils das Ergebnis der Simulation nach der ersten Iteration und ein möglichst exaktes. Für den den Kondensator wird die geschlossenen Lösung verwendet und für den Invertierer eine mit höherer Genauigkeit sequenziell simulierte. Die parallelen Simulationen verwenden möglichst große Toleranzen für den groben Modus. In Graphen des Invertierers ist zum Verständnis noch das periodische Eingangssignal eingezeichnet.\\
+\begin{figure}[ht]
+    \centering
+        \input{../solution_k0_entladen.pgf}
+        \input{../solution_k0_inverter.pgf}
+    \caption{Lösung des Schaltungssimulators nach einer Iteration für den Kondensator(oben) und den Invertierer(unten).}
+    \label{fig:sol_sim}
+\end{figure}
+
+Um die Ergebnisse besser beurteilen zu können ist in Abbildung~\ref{fig:error_local_sim} der lokale absolute Fehler gezeigt. Die Basis stellt jeweils die exakte Lösung dar. Beim Kondensator sind die ersten drei Iterationen wie im Python Experiment strikt besser als die Vorherigen, wobei die späteren sich eher erratisch verhalten. Optisch lässt sich beim Invertierer bereits ab der dritten Iteration kein Unterschied mehr feststellen. Nachdem hier keine geschlossene Lösung vorliegt, ist auch der Fehler der finalen Iteration nicht glatt.\\
+\begin{figure}[ht]
+    \centering
+        \input{../error_local_entladen.pgf}
+        \input{../error_local_inverter.pgf}
+    \caption{Lokaler Fehler nach verschiedenen Iterationen für den Kondensator(oben) und den Invertierer(unten).}
+    \label{fig:error_local_sim}
+\end{figure}
+
+Abschließend findet sich in Abbildung~\ref{fig:error_global_sim} der jeweilige globale Fehler. Die Effektivität des Verfahren ist hier klar zu sehen. Der Kondensator kann nach vier von neun möglichen Iterationen abgebrochen werden, was eine theoretische Beschleunigung von \(\approx2\) erlaubt. Der Invertierer erfährt bereits nach zwei von neun Iterationen keine nennenswerten Verbesserungen mehr was zu einer Beschleunigung von \(\approx4\) genutzt werden kann. Ein Experiment mit 90 Prozessen und sieben Iterationen erzielt eine theoretische Beschleunigung von \(\approx12\).
+\begin{figure}[ht]
+    \centering
+        \input{../error_global_entladen.pgf}
+        \input{../error_global_inverter.pgf}
+    \caption{Entwickung des globalen Fehlers über die Iteraionen.}
+    \label{fig:error_global_sim}
+\end{figure}
