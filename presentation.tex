@@ -12,6 +12,7 @@
     \usepackage{ifthen}
     \usepackage{algorithm}% http://ctan.org/pkg/algorithms
     \usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+    \usepackage[backend=biber,isbn=false,doi=false,url=false]{biblatex}
 
     \usetikzlibrary{positioning, arrows, patterns}
 
@@ -24,6 +25,9 @@
     \usecolortheme{lily}
     \usefonttheme{professionalfonts}
     \beamertemplatenavigationsymbolsempty
+
+    % \bibliographystyle{abbrv}
+    \bibliography{cites}
 
     \title{Parallel-in-Time Integration in Circuit Simulation}
     \author[F. Madge]{Fabio Madge}
@@ -68,5 +72,6 @@
 
     \section{Conclusion}
     \input{slides/conclusion}
+
 
 \end{document}

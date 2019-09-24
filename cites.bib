@@ -2,23 +2,21 @@
 %% http://bibdesk.sourceforge.net/
 
 
-%% Created for Fabio Madge Pimentel at 2019-09-16 00:07:30 +0200 
+%% Created for Fabio Madge Pimentel at 2019-09-24 22:45:32 +0200
 
 
-%% Saved with string encoding Unicode (UTF-8) 
+%% Saved with string encoding Unicode (UTF-8)
 
 
 
 @inproceedings{Gander:2015,
 	Abstract = {Time parallel time integration methods have received renewed interest over the last decade because of the advent of massively parallel computers, which is mainly due to the clock speed limit reached on today's processors. When solving time dependent partial differential equations, the time direction is usually not used for parallelization. But when parallelization in space saturates, the time direction offers itself as a further direction for parallelization. The time direction is however special, and for evolution problems there is a causality principle: the solution later in time is affected (it is even determined) by the solution earlier in time, but not the other way round. Algorithms trying to use the time direction for parallelization must therefore be special, and take this very different property of the time dimension into account.We show in this chapter how time domain decomposition methods were invented, and give an overview of the existing techniques. Time parallel methods can be classified into four different groups: methods based on multiple shooting, methods based on domain decomposition and waveform relaxation, space-time multigrid methods and direct time parallel methods. We show for each of these techniques the main inventions over time by choosing specific publications and explaining the core ideas of the authors. This chapter is for people who want to quickly gain an overview of the exciting and rapidly developing area of research of time parallel methods.},
-	Address = {Cham},
 	Author = {Gander, Martin J.},
 	Booktitle = {Multiple Shooting and Time Domain Decomposition Methods},
 	Date-Added = {2019-09-16 00:06:51 +0200},
 	Date-Modified = {2019-09-16 00:06:51 +0200},
 	Isbn = {978-3-319-23321-5},
 	Pages = {69--113},
-	Publisher = {Springer},
 	Title = {50 Years of Time Parallel Time Integration},
 	Year = {2015}}
 
@@ -28,15 +26,31 @@ On propose dans cette Note un sch{\'e}ma permettant de profiter d'une architectu
 The purpose of this Note is to propose a time discretization of a partial differential evolution equation that allows for parallel implementations. The method, based on an Euler scheme, combines coarse resolutions and independent fine resolutions in time in the same spirit as standard spacial approximations. The resulting parallel implementation is done in the non standard time direction. Its main goal concerns real time problems, hence the proposed terminology of ``parareal'' algorithm.},
 	Author = {Jacques-Louis Lions and Yvon Maday and Gabriel Turinici},
 	Date-Added = {2019-09-16 00:06:51 +0200},
-	Date-Modified = {2019-09-16 00:06:51 +0200},
+	Date-Modified = {2019-09-24 21:14:10 +0200},
 	Doi = {https://doi.org/10.1016/S0764-4442(00)01793-6},
 	Issn = {0764-4442},
 	Journal = {Comptes Rendus de l'Acad{\'e}mie des Sciences - Series I - Mathematics},
 	Number = {7},
 	Pages = {661 - 668},
-	Title = {R{\'e}solution d'EDP par un sch{\'e}ma en temps «parar{\'e}el »},
+	Title = {R{\'e}solution d'EDP par un sch{\'e}ma en temps «parar{\'e}el»},
 	Url = {http://www.sciencedirect.com/science/article/pii/S0764444200017936},
 	Volume = {332},
 	Year = {2001},
 	Bdsk-Url-1 = {http://www.sciencedirect.com/science/article/pii/S0764444200017936},
 	Bdsk-Url-2 = {https://doi.org/10.1016/S0764-4442(00)01793-6}}
+
+@incollection{Gunther:2005,
+	Abstract = {Publisher Summary
+This chapter discusses the modeling aspect of differential-algebraic equations (DAEs). In computational engineering, the network modeling approach forms the basis for computer-aided analysis of time-dependent processes in multibody dynamics, process simulation, or circuit design. Its principle is to connect compact elements via ideal nodes, and to apply some kind of conservation rules for setting up equations. The mathematical model, a set of so-called network equations, is generated automatically by combining network topology with characteristic equations describing the physical behavior of network elements under some simplifying assumptions. Interconnects and semiconductor devices (i.e., transistors) are modeled by multi-terminal elements (multi-ports), for which the branch currents entering any terminal and the branch voltages across any pair of terminals are well-defined quantities. Interconnects and semiconductor devices (i.e., transistors) are modeled by multiterminal elements (multi-ports), for which the branch currents entering any terminal and the branch voltages across any pair of terminals are well-defined quantities.},
+	Author = {M. G{\"u}nther and U. Feldmann and {Maten, ter}, E.J.W.},
+	Booktitle = {Numerical Methods in Electromagnetics},
+	Doi = {https://doi.org/10.1016/S1570-8659(04)13006-8},
+	Issn = {1570-8659},
+	Pages = {523 - 659},
+	Series = {Handbook of Numerical Analysis},
+	Title = {Modelling and Discretization of Circuit Problems},
+	Url = {http://www.sciencedirect.com/science/article/pii/S1570865904130068},
+	Volume = {13},
+	Year = {2005},
+	Bdsk-Url-1 = {http://www.sciencedirect.com/science/article/pii/S1570865904130068},
+	Bdsk-Url-2 = {https://doi.org/10.1016/S1570-8659(04)13006-8}}

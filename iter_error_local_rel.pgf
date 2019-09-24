@@ -212,7 +212,7 @@
 \pgftext[x=4.754794in,y=0.305556in,,top]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont \(\displaystyle 6\)}%
 \end{pgfscope}%
 \begin{pgfscope}%
-\pgftext[x=2.788850in,y=0.123861in,,top]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont t}%
+\pgftext[x=2.788850in,y=0.123861in,,top]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont $t$}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfsetbuttcap%
@@ -347,7 +347,7 @@
 \pgftext[x=0.241087in,y=2.922922in,left,base]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont \(\displaystyle 10^{-1}\)}%
 \end{pgfscope}%
 \begin{pgfscope}%
-\pgftext[x=0.130169in,y=1.725694in,,bottom,rotate=90.000000]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont E(t)}%
+\pgftext[x=0.130169in,y=1.725694in,,bottom,rotate=90.000000]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont $E(t)$}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfpathrectangle{\pgfqpoint{0.626312in}{0.402778in}}{\pgfqpoint{4.325077in}{2.645833in}}%

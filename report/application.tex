@@ -1,1 +1,23 @@
-Schaltungssimulation ist kompliziert.
+\begin{algorithm}[ht]
+    \caption{Transient Analysis}
+    \begin{algorithmic}[1]
+        \Procedure{TRAN}{$T$}\Comment{End time of the simulation}
+            \State $t \gets 0$
+            \State $ddt \gets empty$ \Comment{No History}
+            \State $s \gets \textsf{SOLVE}(empty,t,*ddt)$ \Comment{Initial State}
+            \State $t \gets h_0$
+            \While{$t \leq T$}
+                \State $s \gets \textsf{SOLVE}(s,t,*ddt)$
+                \State $t \gets t + \textsf{CALCSTEP}(ddt)$
+            \EndWhile
+        \EndProcedure
+        \Procedure{SOLVE}{$s,t,ddt$}\Comment{Do Newton Iterations}
+            \State $c \gets \infty$
+            \While{$TOL \leq c$}
+                \State $e \gets \textsf{BUILD}(s,t,*ddt)$\Comment{Build Equation}
+                \State $c \gets \textsf{LINSOLVE}(e)$ and $s \gets s + c$
+            \EndWhile
+            \State $\textsf{WRITE}(s)$
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}

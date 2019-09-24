@@ -31,7 +31,7 @@
             \EndProcedure
             \Procedure{SOLVE}{$s,t,ddt$}\Comment{Do Newton Iterations}
                 \State $c \gets \infty$
-                \While{$c \leq Tol$}
+                \While{$TOL \leq c$}
                     \State $e \gets \textsf{BUILD}(s,t,*ddt)$\Comment{Build Equation}
                     \State $c \gets \textsf{LINSOLVE}(e)$ and $s \gets s + c$
                 \EndWhile
@@ -63,20 +63,20 @@
 
 \subsection{Results}
 
-\begin{frame}
-    \begin{figure}[ht]
-        \centering
-        \scalebox{0.8}{\input{solution_k0_entladen.pgf}}
-        \caption{Result of the simulation after the first iteration and the exact solution.}
-        \label{fig:iters_log}
-    \end{figure}
-\end{frame}
+% \begin{frame}
+%     \begin{figure}[ht]
+%         \centering
+%         \scalebox{0.8}{\input{solution_k0_entladen.pgf}}
+%         \caption{Result simulating the loaded capacitor after the first iteration and the exact solution.}
+%         \label{fig:iters_log}
+%     \end{figure}
+% \end{frame}
 
 \begin{frame}
     \begin{figure}[ht]
         \centering
         \scalebox{0.8}{\input{error_local_entladen.pgf}}
-        \caption{Local absolute error of the simulation results.}
+        \caption{Local absolute error of the result of simulating the loaded capacitor.}
         \label{fig:iters_log}
     \end{figure}
     \begin{equation*}

@@ -1,17 +1,21 @@
 \begin{frame}
-    \frametitle{Idea}
+    \frametitle{Idea of Parareal Algorithm}
     \begin{itemize}[<+->]
+        \item Introduced by Lions\footfullcite{Lions:2001}. More approachable\footfullcite{Gander:2015}.
         \item Parallel-in-time: Decomposition of \(\left(t_0, T\right] = \bigcup_{i=0}^{P-1} \left(t_i, t_{i+1}\right]\)
         \item Solve the subintervals in parallel
-        \item Combination of coarse \(\mathcal{G}\) (fast results) and fine \(\mathcal{F}\) (desired accuracy) solver
+        \item Combination of coarse \(\mathcal{G}\) (fast) and fine \(\mathcal{F}\) (accurate) solver
         \item Run them over multiple iterations
         \item Start with \(\mathcal{G}\!\left(y, t_{A}, t_{\Omega}\right)\) for initial value:\\\(y_{j}^{0} = \mathcal{G}\!\left(y(t_0), t_0, t_{j}\right), \quad j \in \left\{i \,\middle|\, 0 \leq i < P\right\}\)
+        \begin{scriptsize}
         \begin{description}[\(t_{A}\)]
             \item[\(y\)]<.-> Initial value
             \item[\(t_{A}\)]<.-> Start time of simulation
             \item[\(t_{\Omega}\)]<.-> End time of simulation
         \end{description}
+        \end{scriptsize}
         \item Combine multiple results in later iterations
+        \item Stop after some iteration and return the results of \(\mathcal{F}\)
     \end{itemize}
     \end{frame}
 
@@ -86,4 +90,14 @@ With \(y(0)= \frac{L}{2}\):
     \begin{description}[]
         \item[\(\mathcal{P}\!\left(y, t_{A}, t_{\Omega}, k\right)\)]<.-> Parareal solver up to iteration \(k\)
     \end{description}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Automatic stopping criterion}
+    \begin{figure}[ht]
+        \centering
+        \scalebox{0.8}{\input{error_disc.pgf}}
+        \caption{Different amounts of iterations with fixed amount of steps; Comparing global error with the biggest discontinuity.}
+    \label{fig:error_disc}
+    \end{figure}
 \end{frame}

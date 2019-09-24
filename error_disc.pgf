@@ -2393,7 +2393,7 @@
 \end{pgfscope}%
 \end{pgfscope}%
 \begin{pgfscope}%
-\pgftext[x=2.754587in,y=0.123861in,,top]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont E}%
+\pgftext[x=2.754587in,y=0.123861in,,top]{\rmfamily\fontsize{10.000000}{12.000000}\selectfont $E(k)$}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfsetbuttcap%
