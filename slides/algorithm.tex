@@ -3,9 +3,14 @@
     \begin{itemize}[<+->]
         \item Parallel-in-time: Decomposition of \(\left(t_0, T\right] = \bigcup_{i=0}^{P-1} \left(t_i, t_{i+1}\right]\)
         \item Solve the subintervals in parallel
-        \item Combination if coarse \(\mathcal{G}\) fine \(\mathcal{F}\) solver
+        \item Combination of coarse \(\mathcal{G}\) (fast results) and fine \(\mathcal{F}\) (desired accuracy) solver
         \item Run them over multiple iterations
         \item Start with \(\mathcal{G}\!\left(y, t_{A}, t_{\Omega}\right)\) for initial value:\\\(y_{j}^{0} = \mathcal{G}\!\left(y(t_0), t_0, t_{j}\right), \quad j \in \left\{i \,\middle|\, 0 \leq i < P\right\}\)
+        \begin{description}[\(t_{A}\)]
+            \item[\(y\)]<.-> Initial value
+            \item[\(t_{A}\)]<.-> Start time of simulation
+            \item[\(t_{\Omega}\)]<.-> End time of simulation
+        \end{description}
         \item Combine multiple results in later iterations
     \end{itemize}
     \end{frame}
@@ -16,15 +21,16 @@
 \begin{figure}[ht]
     \centering
         \begin{tikzpicture}[scale=1.7]
-            \input{merge}
+            \input{merge_en}
         \end{tikzpicture}
     \caption{derivation of the correction}
     \label{fig:merge}
 \end{figure}
-\pause
+\uncover<9->{
 \begin{equation*}
     y_{j+1}^{k+1} = \mathcal{G}\!\!\left(y_j^{k+1}, t_j, t_{j+1}\right) + \mathcal{F}\!\!\left(y_j^k, t_j, t_{j+1}\right) - \mathcal{G}\!\!\left(y_j^k, t_j, t_{j+1}\right)
-    \end{equation*}
+\end{equation*}
+}
 \end{frame}
 
 % \begin{frame}
@@ -37,7 +43,7 @@
 \begin{figure}[ht]
     \centering
         \scalebox{0.65}{\rotatebox{90}{\input{sequence}}}
-    \caption{Auslastung und Kommunikation der Threads}
+    \caption{Utilization and communication of the threads}
     \label{fig:sequence}
 \end{figure}
 \begin{equation*}
@@ -45,7 +51,7 @@ y_{j+1}^{k+1} = \mathcal{G}\!\!\left(y_j^{k+1}, t_j, t_{j+1}\right) + \mathcal{F
 \end{equation*}
 \end{frame}
 
-\subsection{Evaluation}
+\subsection{Example}
 
 \begin{frame}
 \frametitle{Logistic equation}
@@ -74,4 +80,10 @@ With \(y(0)= \frac{L}{2}\):
         \caption{Local relative error of the parareal solutions.}
         \label{fig:iters_log}
     \end{figure}
+    \begin{equation*}
+        E(t) = \frac{\left|\mathcal{P}(y_0,t_0,T,k)(t)-y(t)\right|}{\left|y(t)\right|}
+    \end{equation*}
+    \begin{description}[]
+        \item[\(\mathcal{P}\!\left(y, t_{A}, t_{\Omega}, k\right)\)]<.-> Parareal solver up to iteration \(k\)
+    \end{description}
 \end{frame}

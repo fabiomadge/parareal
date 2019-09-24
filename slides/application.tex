@@ -5,14 +5,61 @@
 \begin{itemize}[<+->]
     \item Circuit simulator written in \texttt{C++}
     \item Comes with BE and TR integrators
+     \begin{description}[]
+        \item[BE]<.-> Backward Euler method (Implicit Euler)
+        \item[TR]<.-> Trapezoidal rule
+    \end{description}
     \item Limited but sufficient collection of devices
     \item .OP and .TRAN
+    \item Dynamic stepsize
 \end{itemize}
 \end{frame}
 
 \begin{frame}
-how does it work?
+    \begin{algorithm}[H]
+        \caption{Transient Analysis}
+        \begin{algorithmic}[1]
+            \Procedure{TRAN}{$T$}\Comment{End time of the simulation}
+                \State $t \gets 0$
+                \State $ddt \gets empty$ \Comment{No History}
+                \State $s \gets \textsf{SOLVE}(empty,t,*ddt)$ \Comment{Initial State}
+                \State $t \gets h_0$
+                \While{$t \leq T$}
+                    \State $s \gets \textsf{SOLVE}(s,t,*ddt)$
+                    \State $t \gets t + \textsf{CALCSTEP}(ddt)$
+                \EndWhile
+            \EndProcedure
+            \Procedure{SOLVE}{$s,t,ddt$}\Comment{Do Newton Iterations}
+                \State $c \gets \infty$
+                \While{$c \leq Tol$}
+                    \State $e \gets \textsf{BUILD}(s,t,*ddt)$\Comment{Build Equation}
+                    \State $c \gets \textsf{LINSOLVE}(e)$ and $s \gets s + c$
+                \EndWhile
+                \State $\textsf{WRITE}(s)$
+            \EndProcedure
+        \end{algorithmic}
+      \end{algorithm}
 \end{frame}
+
+\begin{frame}
+    \frametitle{Integration}
+    \begin{itemize}[<+->]
+        \item Wrap multiple .TRAN analyses
+        \item Enable handover
+            \begin{enumerate}
+                \item Export state (MNA + DDT)
+                \item Corrections
+                \item Import and restart
+            \end{enumerate}
+        \item Corrections only on DDT \(\rightarrow\) Inconsistent
+        \item Solution: Reiterate the starting point
+            \begin{enumerate}
+                \item Export state (MNA + DDT)
+                \item Parareal on the last two DDT Entries (Only single step methods)
+                \item Treat 0th step as regular step, but lock DDT for the first iteration.
+            \end{enumerate}
+    \end{itemize}
+    \end{frame}
 
 \subsection{Results}
 
@@ -32,6 +79,9 @@ how does it work?
         \caption{Local absolute error of the simulation results.}
         \label{fig:iters_log}
     \end{figure}
+    \begin{equation*}
+        E(t) = \left|\mathcal{P}(y_0,t_0,T,k)(t)-y(t)\right|
+    \end{equation*}
 \end{frame}
 
 \begin{frame}
@@ -41,4 +91,7 @@ how does it work?
         \caption{Global error of the simulation results.}
         \label{fig:iters_log}
     \end{figure}
+    \begin{equation*}
+        E(k) = \int_{t_0}^{T}E(t) dt = \int_{t_0}^{T}\left|\mathcal{P}(y_0,t_0,T,k)(t)-y(t)\right| dt
+    \end{equation*}
 \end{frame}
