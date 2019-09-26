@@ -1,23 +1,38 @@
+Um den Parareal Algorithmus in der Schaltungssimulation einzusetzen, erweitern wir den bestehenden herkömmlichen Schaltungssimulator Tictac. Er ist in \texttt{C++} geschrieben und beherrscht mit dem impliziten Euler-Verfahren und der Trapez-Methode verschiedene Diskretisierungsverfahren. Während die Auswahl der unterstützen Modelle nur eingeschränkt ist, stellt sie eine repräsentative Auswahl dar. Sowohl eine Arbeitspunkt-, als auch eine Transientenanalyse werden angeboten. Eine wichtige Eigenschaft welche alle Schaltungssimulatoren gemein haben, ist die dynamische Schrittweitenkontrolle. Sie schätzt den Fehler des aktuellen Zeitschritts, um die länge des nächsten zu bestimmen.
+
+\subsubsection*{Transientenanalyse}
+Bevor auf die Änderungen zur Parallelisierung eingegangen werden kann, muss der Ablauf der Transientenanalyse in Simulator erläutert werden. Dieser ist in Algorithmus~\ref{alg:trans} schematisch dargestellt. Um das zeitliche Verhalten der Schaltung zu analysieren, wird das in der Einleitung entwickelte Gleichungssystem zu mehreren Zeitpunkten gelöst. Im ersten Schritt wird effektiv eine Arbeitspunktanalyse durchgeführt. Dafür werden Ableitungen der dynamischen Elemente und die Zeit auf null gesetzt. Das Gleichungssystem wird dann mithilfe vom Newtonverfahren Iterativ gelöst. Dabei entstehen Werte für die MNA-Variablen (\(\vec{x}\)), gleichzeitig aber auch die Werte der Differentialgleichungen am Beginn der Simulationszeit \((t_0,\vec{\dot{y}},\vec{y})\). Sie werden separat gespeichert und werden zur Berechnung von \(\beta\) benötigt. Darüber hinaus stellt deren Historie auch die Basis für die Berechnung der Länge des nächsten Zeitschritts dar. Insgesamt wird der Zustand der Simulation zu jedem Zeitpunkt \(t_i\) also durch das Tupel \(S = (s,s_\partial) = (\vec{x}, [(t_i,\dot{\vec{y}_i},\vec{y}_i),(t_{i-1},\dot{\vec{y}}_{i-1},\vec{y}_{i-1}),\dots])\) definiert. Die Länge der Historie ist implementierungabhängig, sollte aber durch das Diskretisierungsverfahren geleitet werden. Ausgehend vom konsistenten Startzustand werden nun so viele Zeitschritte gemacht, wie notwendig ist um \(T\) zu erreichen. Für jeden Zeitschritt muss das Gleichungssystem erneut aufgestellt und gelöst werden. Um es zu Lösen, werden bei den späteren Zeitpunkten das Ergebnis des Vorherigen als Basis verwendet. Hierzu wird erneut das Newtonverfahren verwendet, wobei auch hier mit jeder Iteration das System aktualisiert werden muss. Darüber hinaus muss auch \(\beta\) neu berechnet werden.
+
 \begin{algorithm}[ht]
     \caption{Transient Analysis}
     \begin{algorithmic}[1]
-        \Procedure{TRAN}{$T$}\Comment{End time of the simulation}
+        \Procedure{TRAN}{$T$}\Comment{Endzeit der Simulation}
             \State $t \gets 0$
-            \State $ddt \gets empty$ \Comment{No History}
-            \State $s \gets \textsf{SOLVE}(empty,t,*ddt)$ \Comment{Initial State}
+            \State $ddt \gets empty$ \Comment{Keine vergangenen Lösungen}
+            \State $s \gets \textsf{SOLVE}(empty,t,*ddt)$ \Comment{Ausgangswert von \(\vec{x}\)}
             \State $t \gets h_0$
             \While{$t \leq T$}
                 \State $s \gets \textsf{SOLVE}(s,t,*ddt)$
                 \State $t \gets t + \textsf{CALCSTEP}(ddt)$
             \EndWhile
         \EndProcedure
-        \Procedure{SOLVE}{$s,t,ddt$}\Comment{Do Newton Iterations}
+        \Procedure{SOLVE}{$s,t,ddt$}\Comment{Lösen eines Zeitschritts mit Newton}
             \State $c \gets \infty$
             \While{$TOL \leq c$}
-                \State $e \gets \textsf{BUILD}(s,t,*ddt)$\Comment{Build Equation}
+                \State $e \gets \textsf{BUILD}(s,t,*ddt)$\Comment{Gleichung aufstellen}
                 \State $c \gets \textsf{LINSOLVE}(e)$ and $s \gets s + c$
             \EndWhile
             \State $\textsf{WRITE}(s)$
         \EndProcedure
     \end{algorithmic}
+    \label{alg:trans}
 \end{algorithm}
+
+\subsubsection*{Parallelisierung}
+Die offensichtliche Herrangehensweise ist es, jedes Unterintervall als separate Transientenanalyse zu modellieren. Zu diesem Zweck ist es jedoch notwendig den vollständigen Zustand \(S\) bei Ende einer Teilsimulation zu exportieren und anschließen in der darauffolgenden zu importieren. Dabei muss statt der vorgesehenen Arbeitspunktanalyse zu Beginn der Transientenanalyse, der von Außen gegebene Zustand verwendet werden. So wird es möglich die Korrekturen auf den exportierten Zuständen durchzuführen. Hier liegen jeweils die Zustände der vorherigen Iteration \(S_{p\mathcal{C}}\) und \(S_{p\mathcal{F}}\) vor, wie auch jener des groben Lösers der aktuellen Iteration \(S_{\mathcal{C}}\). Es hat es sich als wirksam erwiesen die Korrekturen auf den Zustand der Differentialgleichungen zu beschränken. Basierend auf \(S_{p\mathcal{F}}\) entsteht schließlich \(S_{\curlyvee}\) nach den Korrekturen.
+\begin{align*}
+    S_{\curlyvee} &= (\vec{x}_{p\mathcal{F}}, [(t_{i,p\mathcal{F}},\dot{\vec{y}}_{i,p\mathcal{F}},\vec{y}_{i,\curlyvee}),(t_{i-1,p\mathcal{F}},\dot{\vec{y}}_{i-1,p\mathcal{F}},\vec{y}_{i-1,\curlyvee}),\dots]).\\
+    \vec{y}_{i,\curlyvee} &= \vec{y}_{i,\mathcal{G}} + \vec{y}_{i,p\mathcal{F}} - \vec{y}_{i,p\mathcal{G}}\\
+    \vec{y}_{i-1,\curlyvee} &= \vec{y}_{i-1,\mathcal{G}}(t_{i-1,p\mathcal{F}}) + \vec{y}_{i-1,p\mathcal{F}} - \vec{y}_{i-1,p\mathcal{G}}(t_{i-1,p\mathcal{F}})
+\end{align*}
+Während die Berechnung von \(\vec{y}_{i,\curlyvee}\) keine Probleme bereitet, ist jene von \(\vec{y}_{i-1,\curlyvee}\) nicht direkt möglich. Nachdem die Schrittweiten für alle drei Simulationen dynamisch sind, deren Berechnung aber nicht auf dem gleichen Daten basiert, kann ich Allgemeinen nicht davon ausgegangen werden, dass \(t_{i,\mathcal{G}} = t_{i,p\mathcal{F}} = t_{i,p\mathcal{G}}\) gilt. Dadurch können die Ergebnisse der groben Löser nicht direkt verwendet werden, sondern müssen beispielsweise durch lineare Interpolation verschoben werden. Durch die gewählten Teilkorrekturen ergibt sich ein weiteres Problem. Der Gesamtzustand \(S_{\curlyvee}\) ist in sich nicht mehr konsistent. Um um dies aufzulösen, wird nicht \(S_{\curlyvee}\) direkt als Simulationsstart verwendet, sondern, bevor der erste Zeitsprung gemacht wird, das Newtonverfahren erneut gestartet. Dabei gilt es zu beachten, das überschreiben von \(s_\partial\) zumindest in der ersten Iteration zu verhindern. Bei unterlassen dessen, wird die Korrektur beim Auswerten der Modelle überschreiben.

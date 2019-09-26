@@ -40,8 +40,8 @@
         \begin{axis}[
             samples=50,
             title=Loaded capacitor,
-            xlabel={Time $(s)$},
-            ylabel={$u_1$},
+            xlabel={$t [s]$},
+            ylabel={$u_1 [V]$},
             width=10cm,
             height=8cm]
           \addplot[blue, ultra thick,domain=0:7e-7] ({x},{exp(-(x/(1e-7)))});
@@ -92,11 +92,11 @@ KCL: \(\forall v \in V. \sum_{j \in E(v)} i_{j} = 0\); Resistor: \(I = G \cdot U
     \item Concrete equation for this example:\\
         \(C\dot{u}_1 + Gu_1 = 0\)
     \item Generalization for bigger circuits:\\
-        \(\mathbf{C}(\vec{x}) \cdot \dot{\vec{x}} + \mathbf{G} \vec{x} = \vec{s}(t)\)
+        \(\mathbf{C}(\vec{x}) \cdot \dot{\vec{x}} + \mathbf{G}(\vec{x}) \cdot  \vec{x} = \vec{s}(t)\)
     \item Application of generalized discretization (more later):\\
-        \(\mathbf{C}(\vec{x}) \cdot (\alpha \vec{x} + \beta) + \mathbf{G} \vec{x} = \vec{s}(t)\)
+        \(\mathbf{C}(\vec{x}) \cdot (\alpha \vec{x} + \beta) + \mathbf{G}(\vec{x}) \cdot  \vec{x} = \vec{s}(t)\)
     \item Prepare for Newton's method:\\
-        \(\mathbf{C}(\vec{x}) \cdot (\alpha \vec{x} + \beta) + \mathbf{G} \vec{x} - \vec{s}(t)= 0\)
+        \(\mathbf{C}(\vec{x}) \cdot (\alpha \vec{x} + \beta) + \mathbf{G}(\vec{x}) \cdot  \vec{x} - \vec{s}(t)= 0\)
 \end{enumerate}
 \end{frame}
 
