@@ -1,8 +1,8 @@
-In der Physik lassen sich viele Vorgänge durch gewöhnliche Differentialgleichungen beschreiben. Im Allgemeinen existiert aber keine exakte geschlossene Lösung für eine solche Gleichung, oder sie ist nicht sinnvoll berechenbar. Der Einsatz numerischer Verfahren ist hier notwendig. Da die Lösung der Gleichungen allein meist auch nicht eindeutig ist, wird der Problemstellung weitere Information hinzugefügt. Beispielsweise werden beim Anfangswertproblem (AWP) eine Differentialgleichung mit einem Startwert assoziiert, also der Funktionswert der Lösung an einer bestimmten Stelle festgesetzt
+In der Physik lassen sich viele Vorgänge durch gewöhnliche Differentialgleichungen beschreiben. Im Allgemeinen existiert aber keine exakte geschlossene Lösung für eine solche Gleichung, oder sie ist nicht sinnvoll berechenbar. Der Einsatz numerischer Verfahren ist hier notwendig. Da die Lösung der Gleichungen allein meist auch nicht eindeutig ist, wird der Problemstellung weitere Information hinzugefügt. Beispielsweise werden beim Anfangswertproblem (AWP) eine Differentialgleichung mit einem Startwert assoziiert, also der Funktionswert der Lösung an einer bestimmten Stelle \(t\) festgesetzt
 \begin{displaymath}
     y'(t) = f(t,y(t)), \quad y(t_0) = y_0.
 \end{displaymath}
-Der Anfangswert wird hier durch \(y_0\) dargestellt und die rechte Seite der Gleichung unter \(f\) abstrahiert. Die bekannten numerischen Verfahren zur Lösung eines AWP haben alle gemein, dass sie sich als Rekursionsgleichung darstellen lassen. Der Ansatz ist hier das gewünschte Ergebnis nicht direkt zu Berechnen, sondern das Problem in kleinere Probleme zu teilen und auf diese die gleiche Strategie anzuwenden, bis es trivial lösbar wird. Die Funktionswerte der Lösung werden hier schrittweise, ausgehend vom Anfangswert, an einigen Stellen berechnet. Ein Beispiel für ein solches Verfahren stellt des explizite Euler-Verfahren dar
+Der Anfangswert wird hier durch \(y_0\) dargestellt und die rechte Seite der Gleichung unter \(f\) abstrahiert. Die bekannten numerischen Verfahren zur Lösung eines AWP haben alle gemein, dass sie sich als Rekursionsgleichung darstellen lassen. Der Ansatz ist hier das gewünschte Ergebnis nicht direkt zu Berechnen, sondern das Problem in kleinere Probleme zu teilen und auf diese die gleiche Strategie anzuwenden, bis es trivial lösbar wird. Die Funktionswerte der Lösung werden hier schrittweise, ausgehend vom Anfangswert, an einigen Stellen berechnet. Ein Beispiel für ein solches Verfahren stellt des implizite Euler-Verfahren dar
 \begin{displaymath}
     y_{n+1} = y_n + hf(t_{n+1},y_{n+1}).
 \end{displaymath}
@@ -10,9 +10,8 @@ Die Schrittweite findet sich in \(h\) wieder. Es ergibt sich folglich eine Abhä
 
 Mehrere Prozessoren parallel zu beschäftigen, ist im Kontext eines sequenziellen Programms im Allgemeinen sehr schwierig. Zunächst einmal können Programme einzeln auf potenziell nebenläufige Abschnitte untersucht werden. Bei den Algorithmen zur Lösung des Anfangswertproblems ist auch dieser simple Ansatz aufgrund der starken Abhängigkeiten nicht zielführend. Ein Ansatz für eine Parallelisierung von Lösungsverfahren von AWPs ist "`parallel in time"', also Unterteilung des zu berechnenden Zeitraums in mehrere abhängige AWPs. Das Problem hier sind die unbekannten Anfangswerte für alle bis auf den ersten Zeitabschnitt. Die Idee des Parareal Algorithmus ist es ein grobes mit einem feinen Lösungsverfahren zu kombinieren. Zunächst wird des grobe Verfahren verwendet um Abschätzungen für die Anfangswerte der Zeitabschnitte zu gewinnen. In einer Fixpunktiteration werden die Ergebnisse der beiden Verfahren kombiniert, um die Qualität der Schätzung mit jeder Iteration zu steigern.
 \subsection*{Schaltungssimulation}
-Die Arbeit beschäftigt sich mit den Anwendung des Parareal Algorithmus in der analogen Schaltungssimulation. Hier wird das Verhalten einer elektronischen Schaltung simuliert. Eine Schaltung ist definiert durch ihre Komponenten und deren Verschaltung, also die Verbindungen zwischen den einzelnen Bauelementen. Die einzelnen Bauteile einer Schaltung lassen sich durch Gleichungen modellieren. Zusammen mit der Topologie lässt sich ein Gleichungssystem aufstellen.\\
+Die Arbeit beschäftigt sich mit den Anwendung des Parareal Algorithmus in der analogen Schaltungssimulation. Hier wird das Verhalten einer elektronischen Schaltung simuliert. Der belastete Kondensator in in Abbildung~\ref{fig:cap} dient in dieser Arbeits als durchgehendes Beispiel hierfür. Eine Schaltung ist definiert durch ihre Komponenten und deren Verschaltung, also die Verbindungen zwischen den einzelnen Bauelementen. Die einzelnen Bauteile einer Schaltung lassen sich durch Gleichungen modellieren. Zusammen mit der Topologie lässt sich ein Gleichungssystem aufstellen.\\
 
-Simulatoren bieten verschiende Analysen an. Die Einfachste findet einen Arbeitspunkt einer Schaltung unter Berücksichtigung von gegebenen Randbedingungen. Ist ein System zeitvariant, zum Beispiel durch Einflüsse von außen, wird die Betrachtung über einen Zeitraum relevant. Zu diesem Zweck kann eine Transientenanalyse vorgenommen werden. Sobald dynamische Elemente in der Schaltung vorkommen, wird hier auch das Lösen von Differentialgleichungen notwendig.\\
 \begin{figure}[ht]
     \centering
         \begin{circuitikz}[scale=1.0]
@@ -21,23 +20,44 @@ Simulatoren bieten verschiende Analysen an. Die Einfachste findet einen Arbeitsp
     \caption{Belasteter Kondensator}
 \label{fig:cap}
 \end{figure}
-Ziel dieser Arbeit ist es einen bestehenden Schaltungssimulator zu parallelisieren. Dessen Vorgehensweise bei einer Transientenanalyse wird anhand vom Beispiel in Abbildung~\ref{fig:cap} beschreiben. Die Schaltung besteht aus zwei Elementen. Einem Kondensator, welcher zu Beginn der Simulation geladen ist, und einem Widerstand. Obwohl für diese Schaltung eine geschlossene Lösung existiert, soll sie mithilfe numerischer Methoden approximiert werden. Das erwartete Verhalten ist, dass sich der Kondensator exponentiell in der Zeit entlädt. Der Widerstand verhindert einen Kurzschluss und durch seine Dimensionierung wird die Geschwindigkeit des Entladevorgangs bestimmt.
+
+Simulatoren bieten verschiende Analysen an. Die Einfachste findet einen Arbeitspunkt einer Schaltung unter Berücksichtigung von gegebenen Randbedingungen. Dieser beschreibt einen möglichen Zustand der Schaltung in Bezug auf Ströme und Spannungen, was auf Basis der Physik der Bauelemente entschieden wird. Ist ein System zeitvariant, zum Beispiel durch Einflüsse von außen, wird die Betrachtung über einen Zeitraum relevant. Zu diesem Zweck kann eine Transientenanalyse vorgenommen werden. Sobald dynamische Elemente in der Schaltung vorkommen, wird dabei auch das Lösen von Differentialgleichungen notwendig. Dadurch wird die Analysen zu einem numerischen Problem, welches aber schwer zu parallelisieren ist.\\
+
+% Hauptbestrebung war es, einen bestehenden Schaltungssimulator zu parallelisieren. Dessen Vorgehensweise bei einer Transientenanalyse wird anhand vom Beispiel in Abbildung~\ref{fig:cap} beschreiben. Die Schaltung besteht aus zwei Elementen. Einem Kondensator, welcher zu Beginn der Simulation geladen ist, und einem Widerstand. Obwohl für diese Schaltung eine geschlossene Lösung existiert, soll sie mithilfe numerischer Methoden approximiert werden. Das erwartete Verhalten ist, dass sich der Kondensator exponentiell in der Zeit entlädt. Der Widerstand verhindert einen Kurzschluss und durch seine Dimensionierung wird die Geschwindigkeit des Entladevorgangs bestimmt.
 
 \subsubsection*{Modifizierten Knotenanalyse (MKA)}
-Die beiden wichtigen Größen in der Elektrotechnik sind die Spannung $U$ gemessen in V und Stromstärke $I$ gemessen in A. Modelle für Bauteile setzen beide Größen ins Verhältnis. Ziel der Analyse sind die Spannungen zwischen den Knoten und der Masse. Die Schalung wird durch einen Graphen abstrahiert. Die Bauelemente werden darin durch Knoten dargestellt. Die elektrischen Verbindungen als Kanten. Die Funktion \(E(k)\) gibt Menge der aus- und eingehenden Kanten von Knoten \(k\) zurück. In diesem Kontext sind sie auch als MKA Variablen bekannt. Die Methode macht sich das Kirchhoff’sches Stromgesetz zunutze. Es besagt, dass an jedem Knoten die Bilanz der ein- und ausgehenden Ströme jederzeit ausgeglichen ist
+Die beiden wichtigen Größen in der Elektrotechnik sind die Spannung $U$ gemessen in Volt und Stromstärke $I$ gemessen in Ampere. Modelle für Bauteile setzen beide Größen ins Verhältnis. Ziel der Modifizierten Knotenanalyse~\cite{Gunther:2005} ist die Bestimmung der Spannungen zwischen den Knoten und der Masse. Die Schalung wird durch einen Graphen \(G = (V,E)\) abstrahiert. Die Bauelemente werden darin durch Kanten dargestellt. Die relevante Größe ist hier der durch des Element fließende Storm, zum Beispiel der Strom \(i_R\) durch den Widerstand. Elektrische Verbindungen werden durch Knoten dargestellt. Hier ist das Potential entscheidend, wie die Spannung \(u_1\) zwischen Knoten 1 und der Masse. Die Funktion \(E(v)\) gibt Menge der aus- und eingehenden Kanten von Knoten \(v\) zurück. Alle Kontenpotenziale zusammen bilden in diesem Kontext die MKA Variablen. Die Analyse macht sich eine fundamentale Erkenntnis der Elektrotechnik, das Kirchhoff’sches Stromgesetz, zunutze. Es besagt, dass an jedem Knoten einer Schaltung die Bilanz der ein- und ausgehenden Ströme jederzeit ausgeglichen ist
 \begin{displaymath}
-    \sum_{j \in E(k)} i_{j} = 0.
+    \forall v \in V. \sum_{j \in E(v)} i_{j} = 0.
 \end{displaymath}
-Um das Gesetz anzuwenden müssen die Elementgleichungen in Leitwertsdarstellung vorliegen, also nach der Stromstärke aufgelöst werden. Ist dies nicht möglich, werden die MKA Variablen um einen Ersatzwert erweitert. Ein Beispiel hierfür stellen Stromquellen dar. Diese Elemente liefern unabhängig von der Spannung immer die vorgegebene Strommenge, können aber zeitlich gesteuert sein. Für jede Knotenspannung wird eine Gleichung mithilfe des Gesetzes aufgestellt. Für das Beispiel ergibt sich die Gleichung
+Um das Gesetz anzuwenden müssen die Elementgleichungen in Leitwertsdarstellung vorliegen, also als Funktion, welche die Spannung auf den Strom abbildet. Ist dies nicht möglich, werden die MKA Variablen um einen Ersatzwert erweitert. Ein Beispiel hierfür stellen Spannungsquellen dar. Diese Elemente sorgen unabhängig vom Strom immer die vorgegebene Spannung, können aber zeitlich gesteuert sein. Für jede Knotenspannung wird eine Gleichung mithilfe des Gesetzes aufgestellt.
+
+Die Beispielschaltung besteht aus zwei Elementen. Ein Kondensator ist ein Bauelement, welches als Stromspeicher dienen kann. Der Strom durch ihn wird durch \(I = C \cdot \dot{U}\) beschieben. Die Kapazität \(C\) gibt die Aufnahmefähigkeit an. In einem Widerstand verrichtet der Strom Arbeit. Seine Leitwerdarstellung lautet \(I = G \cdot U\), wobei der Leitwert \(G=\frac{1}{R}\) ist lediglich der Kehrwert des Widerstands darstellt. Im Beispiel ist der Kondensator zu Beginn geladen. Obwohl für diese Schaltung eine geschlossene Lösung existiert, soll sie mithilfe numerischer Methoden approximiert werden. Die exakte Lösung stellt im weiteren Verlauf jedoch eine gute Vergleichsbasis dar. Das erwartete Verhalten ist Abbildung~\ref{fig:entladen} zu entnehmen.
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            samples=50,
+            xlabel={$t$ [s]},
+            ylabel={$u_1$ [V]},
+            width=10cm,
+            height=8cm]
+          \addplot[blue, ultra thick,domain=0:7e-7] ({x},{exp(-(x/(1e-7)))});
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Entladevorgang des Kondensators}
+\label{fig:entladen}
+\end{figure}
+Darin ist zu sehen, wie die Spannung am Knoten 1 durch das Entladen des Kondensators exponentiell in der Zeit sinkt. Der Widerstand verhindert einen Kurzschluss und durch seine Dimensionierung wird die Geschwindigkeit des Entladevorgangs bestimmt. Für das Beispiel ergibt sich die Gleichung
 \begin{displaymath}
-    C\dot{u}_1 + Gu_1 = 0,\quad G=\frac{1}{R}.
+    C\dot{u}_1 + Gu_1 = 0.
 \end{displaymath}
 Dies lässt sich zu einer Darstellung in Matrixschreibweise generalisieren
 \begin{displaymath}
-    C \cdot \dot{x} + G \cdot x = s(t).
+    \mathbf{C}(\vec{x}) \cdot \dot{\vec{x}} + \mathbf{G}(\vec{x}) \cdot  \vec{x} = \vec{s}(t).
 \end{displaymath}
-Hier sind $C$ die Kapazitätsmatrix, $G$ die Leitwertmatrix, $x$ der Vektor der MKA Variablen, $s$ die Ersatzwerte und $t$ die Zeit. Um diese Differential-algebraische Gleichung zu Lösen, bedarf es der Kombination mehrerer numerischer Verfahren. Zunächst wird ein implizietes Diskretisierungsverfahren angewendet. Im konkreten Simulator entweder implizite Euler-Verfahren, oder die Trapez-Methode. Typyischerweise unterstützen Simulatoren auch das BDF-Verfahren. Ein generisches Diskretisierungsverfahren kann als linerare Abbildung von der gesuchten Variable auf deren Ableitung dargestellt werden \(\dot{x} = \alpha x + \beta\), wobei \(\alpha\) und \(\beta\) durch das jeweilige Verfahren gegeben werden. In die Gesamtgleichung eingesetzt ergibt dies
+Hier sind $\mathbf{C}$ die Kapazitätsmatrix, $\mathbf{G}$ die Leitwertmatrix, $\vec{x}$ der Vektor der MKA Variablen, $\vec{s}$ die Ersatzwerte und $t$ die Zeit. Um diese Differential-algebraische Gleichung zu lösen, bedarf es der Kombination mehrerer numerischer Verfahren. Zunächst wird ein implizites Diskretisierungsverfahren angewendet. Im konkreten Simulator entweder implizite Euler-Verfahren, oder die Trapez-Methode. Typischerweise unterstützen Simulatoren auch das BDF-Verfahren. Ein Diskretisierungsverfahren kann als lineare Abbildung von der gesuchten Variable auf deren Ableitung dargestellt werden \(\dot{x} = \alpha x + \beta\), wobei \(\alpha\), welches durch die Schrittweite \(h\) bestimmt wird, und \(\beta\), welches die vergangenen Werte der Differentialgleichung enthält, durch das jeweilige Verfahren gegeben werden. Im konkreten Fall des impliziten Eulers ist \(\alpha = \frac{1}{h}\) und \(\beta = - \frac{y_n}{h}\). Nach einsetzen der Variablen rechtfertigt der Vergleich mit der nach der Ableitung aufgelösten Vorschrift für des implizite Newtonverfahren \(f(t_{n+1},y_{n+1}) = \frac{y_{n+1} - y_n}{h}\) diese Wahl. In die Gesamtgleichung eingesetzt ergibt dies
 \begin{displaymath}
-    C \cdot (\alpha x + \beta) + G \cdot x = s(t).
+    \mathbf{C}(\vec{x}) \cdot (\alpha \vec{x} + \beta) + \mathbf{G}(\vec{x}) \cdot  \vec{x} = \vec{s}(t).
 \end{displaymath}
 Unter Zuhilfenahme des Newton-Verfahrens entsteht ein linares Gleichungssystem, welches von zum Beispiel vom Gauß-Verfahren gelöst werden kann.
